@@ -167,6 +167,22 @@ class Dokan_Settings {
                     'options' => array( 'seller' => __( 'Vendor', 'dokan-lite' ), 'admin' => __( 'Admin', 'dokan-lite' ) ),
                     'default' => 'seller'
                 ),
+                'shipping_fee_recipient' => array(
+                    'name'    => 'shipping_fee_recipient',
+                    'label'   => __( 'Shipping Fee Recipient', 'dokan-lite' ),
+                    'desc'    => __( 'Shipping fee goes to the Vendor or the Admin?', 'dokan-lite' ),
+                    'type'    => 'select',
+                    'options' => array( 'seller' => __( 'Vendor', 'dokan-lite' ), 'admin' => __( 'Admin', 'dokan-lite' ) ),
+                    'default' => 'seller'
+                ),
+                'tax_fee_recipient' => array(
+                    'name'    => 'tax_fee_recipient',
+                    'label'   => __( 'Tax Fee Recipient', 'dokan-lite' ),
+                    'desc'    => __( 'Tax fee goes to the Vendor or the Admin?', 'dokan-lite' ),
+                    'type'    => 'select',
+                    'options' => array( 'seller' => __( 'Vendor', 'dokan-lite' ), 'admin' => __( 'Admin', 'dokan-lite' ) ),
+                    'default' => 'seller'
+                ),
                 'store_map'                  => array(
                     'name'    => 'store_map',
                     'label'   => __( 'Show Map on Store Page', 'dokan-lite' ),
