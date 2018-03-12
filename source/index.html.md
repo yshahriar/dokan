@@ -23,43 +23,22 @@ Dokan 2.8+ is fully integrated with the WordPress REST API. This allows to manup
 
 # Authentication
 
-> To authorize, use this code:
+## HTTP Basic Auth
+You may use [HTTP Basic Auth](http://en.wikipedia.org/wiki/Basic_access_authentication) by providing the username and password.
 
-```ruby
-require 'kittn'
+For Basic auth you can use [Basic Auth](https://github.com/WP-API/Basic-Auth) Plugin.
 
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-```
+Occasionally some servers may not parse the Authorization header correctly (if you see a “Username is missing” error when authenticating over SSL, you have a server issue). In this case, you may provide the username/password as query string parameters instead.
 
-```python
-import kittn
+## Using JWT Auth
 
-api = kittn.authorize('meowmeowmeow')
-```
+JSON Web Token (JWT) is an open standard ([RFC 7519](https://tools.ietf.org/html/rfc7519)) that defines a compact and self-contained way for securely transmitting information between parties as a JSON object.
 
-```shell
-# With shell, you can just pass the correct header with each request
-curl "api_endpoint_here"
-  -H "Authorization: meowmeowmeow"
-```
+For using this authentication system you can use [JWT Authentication for WP REST API](https://wordpress.org/plugins/jwt-authentication-for-wp-rest-api/) plugin.
+When user sign in using their credential a Bearer token will be created corrosponding to this user. Then this token can be used via API header for getting API response
 
-```javascript
-const kittn = require('kittn');
+`Authorization: Bearer <token>`
 
-let api = kittn.authorize('meowmeowmeow');
-```
-
-> Make sure to replace `meowmeowmeow` with your API key.
-
-Kittn uses API keys to allow access to the API. You can register a new Kittn API key at our [developer portal](http://example.com/developers).
-
-Kittn expects for the API key to be included in all API requests to the server in a header that looks like the following:
-
-`Authorization: meowmeowmeow`
-
-<aside class="notice">
-You must replace <code>meowmeowmeow</code> with your personal API key.
-</aside>
 
 # Products
 The products API allows you to create, view, update, and delete individual, or a batch, of products.
