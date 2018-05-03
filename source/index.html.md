@@ -5688,7 +5688,7 @@ puts response.read_body
 
 ```json
 {
-    "current_balance": 162.10800000000000409272615797817707061767578125,
+    "current_balance": 162.108,
     "withdraw_limit": "5",
     "withdraw_threshold": -1
 }
