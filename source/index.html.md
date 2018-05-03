@@ -5714,7 +5714,7 @@ The coupons API allows you to get all ingormations about stors.
 $curl = curl_init();
 
 curl_setopt_array($curl, array(
-  CURLOPT_URL => "http://dokan.test/wp-json/dokan/v1/stores/21",
+  CURLOPT_URL => "http://dokan.test/wp-json/dokan/v1/stores/2",
   CURLOPT_RETURNTRANSFER => true,
   CURLOPT_ENCODING => "",
   CURLOPT_MAXREDIRS => 10,
@@ -5740,7 +5740,7 @@ if ($err) {
 
 ```shell
 curl --request GET \
-  --url http://dokan.test/wp-json/dokan/v1/stores/21 \
+  --url http://dokan.test/wp-json/dokan/v1/stores/2 \
   --header 'Cache-Control: no-cache' \
 ```
 
@@ -5765,7 +5765,7 @@ print(data.decode("utf-8"))
 var settings = {
   "async": true,
   "crossDomain": true,
-  "url": "http://dokan.test/wp-json/dokan/v1/stores/21",
+  "url": "http://dokan.test/wp-json/dokan/v1/stores/2",
   "method": "GET",
   "headers": {
     "Cache-Control": "no-cache",
@@ -5781,7 +5781,7 @@ $.ajax(settings).done(function (response) {
 require 'uri'
 require 'net/http'
 
-url = URI("http://dokan.test/wp-json/dokan/v1/stores/21")
+url = URI("http://dokan.test/wp-json/dokan/v1/stores/2")
 
 http = Net::HTTP.new(url.host, url.port)
 
@@ -5796,16 +5796,73 @@ puts response.read_body
 
 ```json
 {
-    "ID": "21",
-    "user_login": "postman",
-    "user_pass": "$P$BEU2nv4D9mbN.0w8wsNg9QheQYtzMH.",
-    "user_nicename": "postman",
-    "user_email": "email@postman.com",
-    "user_url": "",
-    "user_registered": "2018-02-18 03:51:39",
-    "user_activation_key": "",
-    "user_status": "0",
-    "display_name": "postman"
+    "id": 2,
+    "store_name": "Seller One",
+    "first_name": "Seller",
+    "last_name": "One",
+    "email": "seller1@ninja.coder",
+    "social": {
+        "fb": false,
+        "gplus": false,
+        "twitter": false,
+        "pinterest": false,
+        "linkedin": false,
+        "youtube": false,
+        "instagram": false,
+        "flickr": false
+    },
+    "phone": "3493948",
+    "show_email": false,
+    "address": {
+        "street_1": "",
+        "street_2": "",
+        "city": "",
+        "zip": "",
+        "country": "BD",
+        "state": "DHA"
+    },
+    "location": "",
+    "banner": "http://newdokan.test/wp-content/uploads/2018/04/cropped-28472214_767944190061441_2093188867011743294_n-3.jpg",
+    "gravatar": "http://newdokan.test/wp-content/uploads/2018/04/cropped-28472214_767944190061441_2093188867011743294_n-4.jpg",
+    "shop_url": "http://newdokan.test/store/seller1/",
+    "products_per_page": 10,
+    "show_more_product_tab": true,
+    "toc_enabled": false,
+    "store_toc": null,
+    "featured": false,
+    "rating": {
+        "rating": "0.00",
+        "count": 0
+    },
+    "enabled": true,
+    "registered": "2018-03-27 05:12:47",
+    "payment": {
+        "bank": {
+            "ac_name": "Estern Bank LTD.",
+            "ac_number": "1291233330433",
+            "bank_name": "EBL",
+            "bank_addr": "Dhanmondi 27",
+            "routing_number": "23322221",
+            "iban": "BDDBDHA",
+            "swift": "BDDTETE-33"
+        },
+        "paypal": {
+            "email": "seller1@ninja.coder"
+        }
+    },
+    "trusted": false,
+    "_links": {
+        "self": [
+            {
+                "href": "http://newdokan.test/wp-json/dokan/v1/stores/2"
+            }
+        ],
+        "collection": [
+            {
+                "href": "http://newdokan.test/wp-json/dokan/v1/stores"
+            }
+        ]
+    }
 }
 ```
 
@@ -5814,8 +5871,6 @@ This API helps you get single store information.
 ### HTTP Request
 
 `GET http://dokan.test/wp-json/dokan/v1/stores/<vendor_id>`
-
-<aside class="notice">This endpoint returns user details but not store details.</aside>
 
 
 ## Get Store Products
@@ -5826,7 +5881,7 @@ This API helps you get single store information.
 $curl = curl_init();
 
 curl_setopt_array($curl, array(
-  CURLOPT_URL => "http://dokan.test/wp-json/dokan/v1/stores/21/products",
+  CURLOPT_URL => "http://dokan.test/wp-json/dokan/v1/stores/2/products",
   CURLOPT_RETURNTRANSFER => true,
   CURLOPT_ENCODING => "",
   CURLOPT_MAXREDIRS => 10,
@@ -5853,7 +5908,7 @@ if ($err) {
 
 ```shell
 curl --request GET \
-  --url http://dokan.test/wp-json/dokan/v1/stores/21/products \
+  --url http://dokan.test/wp-json/dokan/v1/stores/2/products \
   --header 'Authorization: Basic authorization_token' \
   --header 'Cache-Control: no-cache' \
 ```
@@ -5880,7 +5935,7 @@ print(data.decode("utf-8"))
 var settings = {
   "async": true,
   "crossDomain": true,
-  "url": "http://dokan.test/wp-json/dokan/v1/stores/21/products",
+  "url": "http://dokan.test/wp-json/dokan/v1/stores/2/products",
   "method": "GET",
   "headers": {
     "Authorization": "Basic authorization_token",
@@ -5897,7 +5952,7 @@ $.ajax(settings).done(function (response) {
 require 'uri'
 require 'net/http'
 
-url = URI("http://dokan.test/wp-json/dokan/v1/stores/21/products")
+url = URI("http://dokan.test/wp-json/dokan/v1/stores/2/products")
 
 http = Net::HTTP.new(url.host, url.port)
 
@@ -6319,7 +6374,7 @@ This API helps you get single store products.
 $curl = curl_init();
 
 curl_setopt_array($curl, array(
-  CURLOPT_URL => "http://dokan.test/wp-json/dokan/v1/stores/21/reviews",
+  CURLOPT_URL => "http://dokan.test/wp-json/dokan/v1/stores/2/reviews",
   CURLOPT_RETURNTRANSFER => true,
   CURLOPT_ENCODING => "",
   CURLOPT_MAXREDIRS => 10,
@@ -6345,7 +6400,7 @@ if ($err) {
 
 ```shell
 curl --request GET \
-  --url http://dokan.test/wp-json/dokan/v1/stores/21/reviews \
+  --url http://dokan.test/wp-json/dokan/v1/stores/2/reviews \
   --header 'Cache-Control: no-cache' \
 ```
 
@@ -6370,7 +6425,7 @@ print(data.decode("utf-8"))
 var settings = {
   "async": true,
   "crossDomain": true,
-  "url": "http://dokan.test/wp-json/dokan/v1/stores/21/reviews",
+  "url": "http://dokan.test/wp-json/dokan/v1/stores/2/reviews",
   "method": "GET",
   "headers": {
     "Cache-Control": "no-cache",
@@ -6386,7 +6441,7 @@ $.ajax(settings).done(function (response) {
 require 'uri'
 require 'net/http'
 
-url = URI("http://dokan.test/wp-json/dokan/v1/stores/21/reviews")
+url = URI("http://dokan.test/wp-json/dokan/v1/stores/2/reviews")
 
 http = Net::HTTP.new(url.host, url.port)
 
