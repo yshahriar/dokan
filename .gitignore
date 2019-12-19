@@ -11,6 +11,7 @@ secret.json
 debug.log
 package-lock.json
 config.json
+.php_cs.cache
 
 # Composer
 /vendor/
