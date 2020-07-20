@@ -55,6 +55,9 @@ class Ajax {
         add_action( 'wp_ajax_nopriv_dokan_get_login_form', array( $this, 'get_login_form' ) );
         add_action( 'wp_ajax_nopriv_dokan_login_user', array( $this, 'login_user' ) );
         add_action( 'wp_ajax_get_vendor_earning', [ $this, 'get_vendor_earning' ] );
+
+        add_action( 'wp_ajax_dokan_check_duplicate_sku', [ $this, 'check_duplicate_sku' ] );
+
     }
 
     /**
@@ -962,5 +965,21 @@ class Ajax {
         $args = apply_filters( 'dokan_withdraw_export_csv_args', $args );
 
         dokan()->withdraw->export( $args )->csv();
+    }
+
+    /**
+     * Prevent Duplicate SKU from dashboard
+     *
+     * @return int
+     */
+    public function check_duplicate_sku() {
+        global $wpdb;
+        check_ajax_referer( 'duplicate_sku', 'security' );
+        $postdata   = $_POST;
+        $sku        = (string) $postdata['sku'];
+        $product_id = $postdata['product_id'];
+        $result     = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}postmeta WHERE meta_key='_sku' AND meta_value =%s AND post_id !=%d", $sku, $product_id ) );
+
+        wp_send_json( $result );
     }
 }
