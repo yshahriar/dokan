@@ -76,3 +76,33 @@
 
     </div><!-- .dokan-side-right -->
 </div><!-- .dokan-product-inventory -->
+
+<script>
+    ;(function ($) {
+        $('#_sku').on('change', function (e) {
+            let message = '<p style="margin: 4px; font-weight:bold;font-size: 12px"> Sku ' + e.target.value + ' Already Exist. Pick another one</p>'
+            let temp = document.createElement('div');
+            temp.innerHTML = message;
+            let msg = temp.firstChild;
+
+            $.ajax({
+                url: dokan.ajaxurl,
+                data: {
+                    action: 'dokan_check_duplicate_sku',
+                    security: dokan.duplicate_sku_nonce,
+                    sku: e.target.value
+                },
+                type: 'POST',
+                success: function (response) {
+                    if (response >= 1) {
+                        document.querySelector('#_sku').insertAdjacentElement('afterend', msg);
+                    } else {
+                        document.querySelector('#_sku').nextSibling.remove();
+                    }
+                }
+            });
+        });
+
+    })(jQuery)
+
+</script>

@@ -624,6 +624,7 @@ class Assets {
                 'load_variations_nonce'               => wp_create_nonce( 'load-variations' ),
                 'save_variations_nonce'               => wp_create_nonce( 'save-variations' ),
                 'bulk_edit_variations_nonce'          => wp_create_nonce( 'bulk-edit-variations' ),
+                'duplicate_sku_nonce'                 => wp_create_nonce( 'duplicate_sku' ),
                 'i18n_link_all_variations'            => esc_js( sprintf( __( 'Are you sure you want to link all variations? This will create a new variation for each and every possible combination of variation attributes (max %d per run).', 'dokan-lite' ), defined( 'WC_MAX_LINKED_VARIATIONS' ) ? WC_MAX_LINKED_VARIATIONS : 50 ) ),
                 'i18n_enter_a_value'                  => esc_js( __( 'Enter a value', 'dokan-lite' ) ),
                 'i18n_enter_menu_order'               => esc_js( __( 'Variation menu order (determines position in the list of variations)', 'dokan-lite' ) ),
