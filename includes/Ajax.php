@@ -966,20 +966,4 @@ class Ajax {
 
         dokan()->withdraw->export( $args )->csv();
     }
-
-    /**
-     * Prevent Duplicate SKU from dashboard
-     *
-     * @return int
-     */
-    public function check_duplicate_sku() {
-        global $wpdb;
-        check_ajax_referer( 'duplicate_sku', 'security' );
-        $postdata   = $_POST;
-        $sku        = (string) $postdata['sku'];
-        $product_id = $postdata['product_id'];
-        $result     = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}postmeta WHERE meta_key='_sku' AND meta_value =%s AND post_id !=%d", $sku, $product_id ) );
-
-        wp_send_json( $result );
-    }
 }
