@@ -80,5 +80,6 @@ class Hooks {
                 )
             );
         }
+        wp_cache_delete( 'dokan_seller_balance_' . $withdraw->get_user_id(), 'dokan_seller_data_' . $withdraw->get_user_id() );
     }
 }
