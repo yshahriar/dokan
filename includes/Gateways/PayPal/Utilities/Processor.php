@@ -371,12 +371,18 @@ class Processor {
      * @return array|mixed|\WP_Error
      */
     public function get_request( $url ) {
+        $header = $this->get_header();
+
+        if ( is_wp_error( $header ) ) {
+            return $header;
+        }
+
         $args = [
             'timeout'     => '30',
             'redirection' => '30',
             'httpversion' => '1.0',
             'blocking'    => true,
-            'headers'     => $this->get_header(),
+            'headers'     => $header,
             'cookies'     => [],
         ];
 
@@ -410,6 +416,10 @@ class Processor {
      */
     public function make_request( $url, $data, $header = true, $content_type_json = true, $request_with_token = true ) {
         $header = $header ? $this->get_header( $content_type_json, $request_with_token ) : [];
+
+        if ( is_wp_error( $header ) ) {
+            return $header;
+        }
 
         $args = [
             'body'        => $data,
