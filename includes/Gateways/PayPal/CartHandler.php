@@ -251,7 +251,8 @@ data-merchant-id="' . implode( ',', $paypal_merchant_ids ) . '" ' . $data_client
             $paypal_js_sdk_url .= 'components=hosted-fields,buttons&';
         }
 
-        $paypal_js_sdk_url .= "client-id={$app_user}&currency=USD&intent=capture";
+        $currency = get_woocommerce_currency();
+        $paypal_js_sdk_url .= "client-id={$app_user}&currency={$currency}&intent=capture";
 
         return $paypal_js_sdk_url;
     }
