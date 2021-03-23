@@ -701,6 +701,10 @@ class DokanPayPal extends WC_Payment_Gateway {
     public function process_admin_options() {
         parent::process_admin_options();
 
+        // delete token transient after settings is being updated
+        delete_transient( '_dokan_paypal_marketplace_access_token' );
+        delete_transient( '_dokan_paypal_marketplace_client_token' );
+
         //create webhook automatically
         if ( ! get_option( '_dokan_paypal_marketplace_webhook', false ) ) {
             $events = Helper::get_webhook_events_for_notification();
