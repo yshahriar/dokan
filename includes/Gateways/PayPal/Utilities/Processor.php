@@ -423,8 +423,8 @@ class Processor {
 
         $args = [
             'body'        => $data,
-            'timeout'     => '30',
-            'redirection' => '30',
+            'timeout'     => '120',
+            'redirection' => '120',
             'httpversion' => '1.0',
             'blocking'    => true,
             'headers'     => $header,
@@ -449,10 +449,10 @@ class Processor {
         }
 
         if ( $paypal_debug_id ) {
-            $data['paypal_debug_id'] = $paypal_debug_id;
+            $body['paypal_debug_id'] = $paypal_debug_id;
         }
 
-        return $data;
+        return $body;
     }
 
     /**

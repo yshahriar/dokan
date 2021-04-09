@@ -73,7 +73,7 @@ class Ajax {
                     'url'     => add_query_arg(
                         [
                             'status'  => 'seller_error',
-                            'message' => __( 'Vendor\'s country is not supported by PayPal.', 'dokan-lite' ),
+                            'message' => rawurlencode( __( 'Selected country is not supported by PayPal. Please change your Country from Vendor Dashboard --> Settings --> Country', 'dokan-lite' ) ),
                         ],
                         dokan_get_navigation_url( 'settings/payment' )
                     ),
@@ -85,16 +85,26 @@ class Ajax {
         $paypal_url = $processor->create_partner_referral( $email_address, $tracking_id, [ $product_type ] );
 
         if ( is_wp_error( $paypal_url ) ) {
+            // log error message to user meta
             Helper::log_paypal_error( $user_id, $paypal_url, 'create_partner_referral', 'user' );
 
-            wc_add_wp_error_notices( $paypal_url );
+            $error_message = $paypal_url->get_error_message();
+            if ( is_array( $error_message ) && isset( $error_message['message'] ) ) {
+                $error_message = $error_message['message'];
+            }
 
             wp_send_json_error(
                 [
                     'type'    => 'error',
                     'reload'  => true,
                     'message' => __( 'Connect PayPal error', 'dokan-lite' ),
-                    'url'     => dokan_get_navigation_url( 'settings/payment' ),
+                    'url'     => add_query_arg(
+                        [
+                            'status'  => 'seller_error',
+                            'message' => rawurlencode( $error_message ),
+                        ],
+                        dokan_get_navigation_url( 'settings/payment' )
+                    ),
                 ]
             );
         }

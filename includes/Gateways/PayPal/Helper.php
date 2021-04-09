@@ -71,7 +71,7 @@ class Helper {
         }
 
         if ( ! is_ssl() && ! static::is_test_mode() ) {
-            return false;
+            //return false;
         }
 
         return true;
@@ -507,15 +507,16 @@ class Helper {
         $error_data = $error->get_error_data();
 
         //store paypal debug id
-        switch ( $context ) {
-            case 'post':
-                update_post_meta( $id, "_dokan_paypal_{$meta_key}_debug_id", $error_data['paypal_debug_id'] );
+        if ( isset( $error_data['paypal_debug_id'] ) ) {
+            switch ( $context ) {
+                case 'post':
+                    update_post_meta( $id, "_dokan_paypal_{$meta_key}_debug_id", $error_data['paypal_debug_id'] );
+                    break;
 
-                break;
-            case 'user':
-                update_user_meta( $id, "_dokan_paypal_{$meta_key}_debug_id", $error_data['paypal_debug_id'] );
-
-                break;
+                case 'user':
+                    update_user_meta( $id, "_dokan_paypal_{$meta_key}_debug_id", $error_data['paypal_debug_id'] );
+                    break;
+            }
         }
 
         dokan_log( "[Dokan PayPal Marketplace] $meta_key Error:\n" . print_r( $error, true ), 'error' );

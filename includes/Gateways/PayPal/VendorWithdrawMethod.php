@@ -149,7 +149,7 @@ class VendorWithdrawMethod {
         $_get_data = wp_unslash( $_GET );//phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
         if ( isset( $_get_data['status'] ) && 'seller_error' === sanitize_text_field( $_get_data['status'] ) ) {
-            echo '<div class=\'dokan-error\'>' . esc_html( $_get_data['message'] ) . '</div>';
+            echo '<div class=\'dokan-error\'>' . esc_html( rawurldecode( $_get_data['message'] ) ) . '</div>';
         }
     }
 
@@ -167,7 +167,7 @@ class VendorWithdrawMethod {
         $_get_data = wp_unslash( $_GET );//phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
         if ( isset( $_get_data['status'] ) && 'success' === sanitize_text_field( $_get_data['status'] ) ) {
-            echo '<div class=\'dokan-message\'>' . esc_html( $_get_data['message'] ) . '</div>';
+            echo '<div class=\'dokan-message\'>' . esc_html( rawurldecode( $_get_data['message'] ) ) . '</div>';
         }
     }
 }

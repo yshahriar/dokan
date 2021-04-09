@@ -75,7 +75,7 @@ if ( $load_connect_js ) :
                     '                target="PPFrame"\n' +
                     '                href="'+ connect_url +'"\n' +
                     '                id="vendor_paypal_connect"\n' +
-                    '                class="button button-primary <?php echo $button_class; ?>"\n' +
+                    '                class="button button-primary"\n' +
                     '            >Connect To Paypal</a>\n' +
                     '        </p>\n' +
                     '    </div>');
