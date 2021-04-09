@@ -34,6 +34,11 @@ class VendorWithdrawMethod {
      * @return array
      */
     public function register_methods( $methods ) {
+        // check if admin provided all the required api keys
+        if ( ! Helper::is_ready() ) {
+            return $methods;
+        }
+
         $methods['dokan-paypal-marketplace'] = [
             'title'    => __( 'Dokan PayPal Marketplace', 'dokan-lite' ),
             'callback' => [ $this, 'paypal_connect_button' ],
@@ -57,7 +62,6 @@ class VendorWithdrawMethod {
         $email = isset( $store_settings['payment']['dokan_paypal_marketplace']['email'] ) ? esc_attr( $store_settings['payment']['dokan_paypal_marketplace']['email'] ) : $current_user->user_email;
 
         $is_seller_enabled = Helper::is_seller_enable_for_receive_payment( get_current_user_id() );
-        //$is_seller_enabled = true;
 
         $merchant_id           = Helper::get_seller_merchant_id( get_current_user_id() );
         $primary_email         = get_user_meta( get_current_user_id(), Helper::get_seller_primary_email_confirmed_key(), true );
