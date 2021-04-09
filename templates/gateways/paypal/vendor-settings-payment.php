@@ -1,55 +1,55 @@
 <?php echo wc_print_notices(); ?>
 
-<div class="dokan-stripe-connect-container">
-    <div class="dokan-form-group">
-        <div class="dokan-w8">
-            <input
-                name="settings[paypal][email]"
-                value="<?php echo esc_attr( $email ); ?>"
-                class="dokan-form-control"
-                id="vendor_paypal_email_address"
-                placeholder="<?php esc_html_e( 'Your PayPal email address', 'dokan-lite' ); ?>"
-                type="email"
-            >
-        </div>
-
-        <?php if ( $merchant_id && ! $primary_email ) : ?>
-        <div class="dokan-w12">
-            <div class="dokan-alert dokan-alert-warning dokan-text-left" style="margin-top: 15px">
-                <?php esc_html_e('Your primary email is not confirmed yet. To receive payment you must need to confirm your paypal primary email.', 'dokan-lite');?>
+<div class="dokan-paypal-marketplace-container">
+    <?php if ( $is_seller_enabled ): ?>
+            <p class="dokan-text-left">
+                <a class="dokan-btn dokan-btn-danger dokan-btn-theme"
+                    href="<?php echo esc_url_raw( $disconnect_url ); ?>"
+                ><?php _e( 'Disconnect', 'dokan-lite' ); ?></a>
+            </p>
+            <div class="dokan-alert dokan-alert-success dokan-text-left">
+                <?php esc_html_e( 'Your account is connected with PayPal Marketplace. You can disconnect your account using the above button.', 'dokan-lite' ); ?>
             </div>
-        </div>
-        <?php endif;?>
-    </div>
-
-    <p class="dokan-text-left">
-        <a
-            href="javascript:void(0)"
-            class="button button-primary vendor_paypal_connect <?php echo $button_class; ?>"
-        >
-            <?php echo esc_html( $button_text ); ?>
-        </a>
-
-        <?php if ( $merchant_id && ! $primary_email ) : ?>
-            <?php $url = add_query_arg( [
-                'action'   => 'merchant-status-update',
-                '_wpnonce' => wp_create_nonce( 'paypal-marketplace-connect' ),
-            ] );
-            ?>
-            <a
-                href="<?php echo $url;?>"
-                class="button button-primary"
-            >
-                <?php echo esc_html_e( 'Update', 'dokan-lite' ); ?>
-            </a>
-        <?php endif;?>
-    </p>
-
-    <div id="paypal_connect_button"></div>
+    <?php elseif ( ! empty( $merchant_id ) && empty( $primary_email ) ): ?>
+            <div class="dokan-w12">
+                <div class="dokan-alert dokan-alert-warning dokan-text-left" style="margin-top: 15px">
+                    <?php esc_html_e('Your primary email is not confirmed yet. To receive payment you must need to confirm your PayPal primary email.', 'dokan-lite');?>
+                </div>
+            </div>
+            <p class="dokan-text-left">
+                <?php $url = add_query_arg( [
+                    'action'   => 'dokan-paypal-merchant-status-update',
+                    '_wpnonce' => $nonce,
+                ] );
+                ?>
+                <a href="<?php echo $url;?>" class="button button-primary">
+                    <?php echo esc_html_e( 'Update', 'dokan-lite' ); ?>
+                </a>
+            </p>
+    <?php else: ?>
+            <div class="dokan-form-group">
+                <div class="dokan-w8">
+                    <input
+                        name="settings[paypal][email]"
+                        value="<?php echo esc_attr( $email ); ?>"
+                        class="dokan-form-control"
+                        id="vendor_paypal_email_address"
+                        placeholder="<?php esc_html_e( 'Your PayPal email address', 'dokan-lite' ); ?>"
+                        type="email"
+                    >
+                </div>
+                <div class="dokan-w4">
+                    <a href="javascript:void(0)" class="button button-primary vendor_paypal_connect">
+                        <?php esc_html_e( 'Sign Up' ); ?>
+                    </a>
+                </div>
+            </div>
+            <div id="paypal_connect_button"></div>
+    <?php endif; ?>
 </div>
 
 <?php
-if ( ! $button_disabled ) :
+if ( $load_connect_js ) :
 ?>
 <script type="text/javascript">
     ;(function($, document) {

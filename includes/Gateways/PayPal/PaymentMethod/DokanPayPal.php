@@ -56,12 +56,12 @@ class DokanPayPal extends WC_Payment_Gateway {
         $this->id                 = Helper::get_gateway_id();
         $this->icon               = false;
         $this->has_fields         = true;
-        $this->method_title       = __( 'Dokan PayPal Marketplace Payments', 'dokan-lite' );
-        $this->method_description = __( 'Pay via paypal marketplace payment', 'dokan-lite' );
+        $this->method_title       = __( 'Dokan PayPal Marketplace', 'dokan-lite' );
+        $this->method_description = __( 'Pay Via PayPal Marketplace', 'dokan-lite' );
         $this->icon               = apply_filters( 'woocommerce_paypal_icon', DOKAN_PLUGIN_ASSEST . '/images/paypal-marketplace.png' );
 
         $title                = $this->get_option( 'title' );
-        $this->title          = empty( $title ) ? __( 'PayPal Marketplace Payments', 'dokan-lite' ) : $title;
+        $this->title          = empty( $title ) ? __( 'PayPal Marketplace', 'dokan-lite' ) : $title;
         $this->test_mode      = $this->get_option( 'test_mode' );
         $this->send_shipping  = $this->get_option( 'send_shipping' );
         $this->single_mode    = $this->get_option( 'single_mode' );
@@ -90,7 +90,7 @@ class DokanPayPal extends WC_Payment_Gateway {
             'enabled'        => [
                 'title'   => __( 'Enable/Disable', 'dokan-lite' ),
                 'type'    => 'checkbox',
-                'label'   => __( 'Enable PayPal Marketplace', 'dokan-lite' ),
+                'label'   => __( 'Enable Dokan PayPal Marketplace', 'dokan-lite' ),
                 'default' => 'no',
             ],
             'title'          => [
@@ -106,14 +106,6 @@ class DokanPayPal extends WC_Payment_Gateway {
                 'description' => __( 'This controls the description which the user sees during checkout.', 'dokan-lite' ),
                 'default'     => __( 'Pay via PayPal Marketplace; you can pay with your credit card if you don\'t have a PayPal account', 'dokan-lite' ),
             ],
-            'pa_admin_email' => [
-                'title'       => __( 'PayPal Email', 'dokan-lite' ),
-                'type'        => 'email',
-                'description' => __( 'Please enter your PayPal email address; this is needed in order to take payment.', 'dokan-lite' ),
-                'default'     => '',
-                'desc_tip'    => true,
-                'placeholder' => 'you@youremail.com',
-            ],
             'test_mode'      => [
                 'title'       => __( 'PayPal sandbox', 'dokan-lite' ),
                 'type'        => 'checkbox',
@@ -123,60 +115,44 @@ class DokanPayPal extends WC_Payment_Gateway {
                 'description' => sprintf( __( 'PayPal sandbox can be used to test payments. Sign up for a developer account <a href="%s">here</a>.', 'dokan-lite' ), 'https://developer.paypal.com/' ),
             ],
             'partner_id'     => [
-                'title'       => __( 'Partner ID', 'dokan-lite' ),
+                'title'       => __( 'PayPal Merchant ID/Partner ID', 'dokan-lite' ),
                 'type'        => 'text',
-                'description' => __( 'For this payment method your need an application credential', 'dokan-lite' ),
+                'description' => __( 'To get Merchant ID goto Paypal Dashboard --> Account Settings --> Business Information section.', 'dokan-lite' ),
                 'default'     => '',
                 'desc_tip'    => true,
-                'placeholder' => 'api appID',
+                'placeholder' => 'PayPal Merchant ID/Partner ID',
             ],
             'app_user'       => [
-                'title'       => __( 'API Username', 'dokan-lite' ),
+                'title'       => __( 'Client ID', 'dokan-lite' ),
                 'type'        => 'text',
                 'description' => __( 'For this payment method your need an application credential', 'dokan-lite' ),
                 'default'     => '',
                 'desc_tip'    => true,
-                'placeholder' => 'username',
+                'placeholder' => 'Client ID',
             ],
             'app_pass'       => [
-                'title'       => __( 'API Password', 'dokan-lite' ),
+                'title'       => __( 'Client Secret', 'dokan-lite' ),
                 'type'        => 'text',
                 'description' => __( 'For this payment method your need an application credential', 'dokan-lite' ),
                 'default'     => '',
                 'desc_tip'    => true,
-                'placeholder' => 'password',
-            ],
-            'app_sig'        => [
-                'title'       => __( 'API Signature', 'dokan-lite' ),
-                'type'        => 'text',
-                'description' => __( 'For this payment method your need an application credential', 'dokan-lite' ),
-                'default'     => '',
-                'desc_tip'    => true,
-                'placeholder' => 'signature',
+                'placeholder' => 'Client Secret',
             ],
             'test_app_user'  => [
-                'title'       => __( 'Sandbox App Username', 'dokan-lite' ),
+                'title'       => __( 'Sandbox Client ID', 'dokan-lite' ),
                 'type'        => 'text',
                 'description' => __( 'For this system please sign up in developer account and get your  application credential', 'dokan-lite' ),
                 'default'     => '',
                 'desc_tip'    => true,
-                'placeholder' => 'username',
+                'placeholder' => 'Sandbox Client ID',
             ],
             'test_app_pass'  => [
-                'title'       => __( 'Sandbox App Password', 'dokan-lite' ),
+                'title'       => __( 'Sandbox Client Secret', 'dokan-lite' ),
                 'type'        => 'text',
                 'description' => __( 'For this system please sign up in developer account and get your  application credential', 'dokan-lite' ),
                 'default'     => '',
                 'desc_tip'    => true,
-                'placeholder' => 'password',
-            ],
-            'test_app_sig'   => [
-                'title'       => __( 'Sandbox App Signature', 'dokan-lite' ),
-                'type'        => 'text',
-                'description' => __( 'For this system please sign up in developer account and get your  application credential', 'dokan-lite' ),
-                'default'     => '',
-                'desc_tip'    => true,
-                'placeholder' => 'signature',
+                'placeholder' => 'Sandbox Client Secret',
             ],
             'button_type'    => [
                 'title'   => __( 'Payment Button Type', 'dokan-lite' ),
@@ -315,7 +291,7 @@ class DokanPayPal extends WC_Payment_Gateway {
             ];
         }
 
-        $process_payment = apply_filters( 'dokan_paypal_process_payment', [	'order' => $order ] );
+        $process_payment = apply_filters( 'dokan_paypal_process_payment', [ 'order' => $order ] );
 
         if ( isset( $process_payment['product_type'] ) && 'product_pack' === $process_payment['product_type'] ) {
             return $process_payment['data'];
@@ -334,7 +310,7 @@ class DokanPayPal extends WC_Payment_Gateway {
 
         $create_order_data = [
             'intent'              => 'CAPTURE',
-            "payer"               => $this->get_shipping_address( $order, true ),
+            'payer'               => $this->get_shipping_address( $order, true ),
             'application_context' => [
                 'return_url'          => $order->get_checkout_order_received_url(),
                 'cancel_url'          => $order->get_cancel_order_url(),
@@ -362,9 +338,10 @@ class DokanPayPal extends WC_Payment_Gateway {
             ];
         }
         //store paypal debug id & create order id
-        update_post_meta( $order->get_id(), '_dokan_paypal_create_order_debug_id', $create_order_url['paypal_debug_id'] );
-        update_post_meta( $order->get_id(), '_dokan_paypal_order_id', $create_order_url['id'] );
-        update_post_meta( $order->get_id(), '_dokan_paypal_redirect_url', $create_order_url['links'][1]['href'] );
+        $order->update_meta_data( '_dokan_paypal_create_order_debug_id', $create_order_url['paypal_debug_id'] );
+        $order->update_meta_data( '_dokan_paypal_order_id', $create_order_url['id'] );
+        $order->update_meta_data( '_dokan_paypal_redirect_url', $create_order_url['links'][1]['href'] );
+        $order->save_meta_data();
 
         return [
             'result'              => 'success',
@@ -426,16 +403,15 @@ class DokanPayPal extends WC_Payment_Gateway {
         ?>
         <script type="text/javascript">
             ;(function ($) {
-                var inputToggle = function (val) {
+                var inputToggle = function () {
                     let payment_id_prefix = 'woocommerce_<?php echo $this->id; ?>_';
 
                     let settings_input_ids = [
                         'app_user',
-                        'app_pass',
-                        'app_sig'
+                        'app_pass'
                     ];
 
-                    if (val) {
+                    if ( $(`#${payment_id_prefix}test_mode`).is(':checked') ) {
                         settings_input_ids.map(function (id) {
                             $('#' + payment_id_prefix + 'test_' + id).closest('tr').show();
                             $('#' + payment_id_prefix + id).closest('tr').hide();
@@ -447,14 +423,13 @@ class DokanPayPal extends WC_Payment_Gateway {
                         });
                     }
                 };
+                inputToggle();
 
                 let payment_id_prefix = 'woocommerce_<?php echo $this->id; ?>_';
                 let test_mode = $(`#${payment_id_prefix}test_mode`);
 
-                inputToggle(test_mode.val());
-
                 test_mode.on('change', function () {
-                    inputToggle(this.checked);
+                    inputToggle();
                 });
 
             })(jQuery);
@@ -475,7 +450,7 @@ class DokanPayPal extends WC_Payment_Gateway {
         $shipping_total = wc_format_decimal( $order->get_shipping_total(), 2 );
 
         $seller_id     = dokan_get_seller_id_by_order( $order->get_id() );
-        $merchant_id   = get_user_meta( $seller_id, '_dokan_paypal_marketplace_merchant_id', true );
+        $merchant_id   = Helper::get_seller_merchant_id( $seller_id );
         $platform_fee  = wc_format_decimal( dokan()->commission->get_earning_by_order( $order, 'admin' ), 2 );
 
         $product_items = $this->get_product_items( $order );
@@ -710,15 +685,20 @@ class DokanPayPal extends WC_Payment_Gateway {
             $events = Helper::get_webhook_events_for_notification();
 
             $processor = Processor::init();
-            $response  = $processor->create_webhook( 'https://kapilpaul.me/wc-api/dokan-paypal', $events );
+            $response  = $processor->create_webhook( home_url( 'wc-api/dokan-paypal' ), $events );
 
             if ( ! is_wp_error( $response ) ) {
                 update_option( '_dokan_paypal_marketplace_webhook', $response['id'] );
             }
         }
 
-        update_user_meta( dokan_get_current_user_id(), '_dokan_paypal_marketplace_merchant_id', $this->get_option( 'partner_id' ) );
-        update_user_meta( dokan_get_current_user_id(), '_dokan_paypal_enable_for_receive_payment', true );
+        /*
+         * hack applied to process vendor subscription payment,
+         * from kapil bhai: Amra method e seller er id and details dei. Tai admin er tao evabe rakha
+         */
+        //todo: remove below lines from here
+        //update_user_meta( dokan_get_current_user_id(), '_dokan_paypal_merchant_id', $this->get_option( 'partner_id' ) );
+        //update_user_meta( dokan_get_current_user_id(), '_dokan_paypal_enable_for_receive_payment', true );
     }
 
     /**
@@ -747,6 +727,11 @@ class DokanPayPal extends WC_Payment_Gateway {
             return true;
         }
 
+        // check if client provided all the information right
+        if ( ! Helper::is_ready() ) {
+            return false;
+        }
+
         //paypal does not allow if there are more than 10 products in the cart
         if ( count( WC()->cart->get_cart() ) > 10 ) {
             return false;
@@ -755,6 +740,11 @@ class DokanPayPal extends WC_Payment_Gateway {
         foreach ( WC()->cart->get_cart() as $item ) {
             $product_id = $item['data']->get_id();
             $seller_id  = get_post_field( 'post_author', $product_id );
+
+            // check if cart item is a vendor subscription product
+            if ( Helper::is_vendor_subscription_product( $product_id ) ) {
+                continue;
+            }
 
             if ( ! Helper::is_seller_enable_for_receive_payment( $seller_id ) ) {
                 return false;
@@ -777,6 +767,11 @@ class DokanPayPal extends WC_Payment_Gateway {
             //paypal does not allow if there is more than 10 products in the order
             if ( count( $order->get_items( 'line_item' ) ) > 10 ) {
                 return false;
+            }
+
+            // check cart item has vendor subscription product.
+            if ( Helper::is_vendor_subscription_order( $order ) ) {
+                return true;
             }
 
             foreach ( $order->get_items( 'line_item' ) as $key => $line_item ) {

@@ -71,21 +71,21 @@ class Manager {
 
         if (
             isset( $_GET['action'] ) &&
-            'paypal-marketplace-connect' !== $_GET['action'] &&
-            'paypal-marketplace-connect-success' !== $_GET['action'] &&
-            'merchant-status-update' !== $_GET['action']
+            'dokan-paypal-marketplace-connect' !== $_GET['action'] &&
+            'dokan-paypal-marketplace-connect-success' !== $_GET['action'] &&
+            'dokan-paypal-merchant-status-update' !== $_GET['action']
         ) {
             return;
         }
 
         $get_data = wp_unslash( $_GET );
 
-        if ( isset( $get_data['_wpnonce'] ) && 'paypal-marketplace-connect' === $_GET['action'] && ! wp_verify_nonce( $get_data['_wpnonce'], 'paypal-marketplace-connect' ) ) {
+        if ( isset( $get_data['_wpnonce'] ) && 'dokan-paypal-marketplace-connect' === $_GET['action'] && ! wp_verify_nonce( $get_data['_wpnonce'], 'dokan-paypal-marketplace-connect' ) ) {
             wp_safe_redirect( add_query_arg( [ 'message' => 'error' ], dokan_get_navigation_url( 'settings/payment' ) ) );
             exit();
         }
 
-        if ( isset( $get_data['_wpnonce'] ) && $_GET['action'] === 'paypal-marketplace-connect-success' && ! wp_verify_nonce( $get_data['_wpnonce'], 'paypal-marketplace-connect-success' ) ) {
+        if ( isset( $get_data['_wpnonce'] ) && $_GET['action'] === 'dokan-paypal-marketplace-connect-success' && ! wp_verify_nonce( $get_data['_wpnonce'], 'dokan-paypal-marketplace-connect-success' ) ) {
             wp_safe_redirect(
                 add_query_arg(
                     [
@@ -98,17 +98,17 @@ class Manager {
             exit();
         }
 
-        if ( isset( $get_data['_wpnonce'] ) && $_GET['action'] === 'merchant-status-update' && ! wp_verify_nonce( $get_data['_wpnonce'], 'paypal-marketplace-connect' ) ) {
+        if ( isset( $get_data['_wpnonce'] ) && $_GET['action'] === 'dokan-paypal-merchant-status-update' && ! wp_verify_nonce( $get_data['_wpnonce'], 'dokan-paypal-merchant-status-update' ) ) {
             wp_safe_redirect( add_query_arg( [ 'message' => 'error' ], dokan_get_navigation_url( 'settings/payment' ) ) );
             exit();
         }
 
-        if ( isset( $get_data['action'] ) && 'paypal-marketplace-connect-success' === $get_data['action'] ) {
+        if ( isset( $get_data['action'] ) && 'dokan-paypal-marketplace-connect-success' === $get_data['action'] ) {
             $this->handle_paypal_marketplace_connect_success_response();
         }
 
-        if ( isset( $get_data['action'] ) && 'merchant-status-update' === $get_data['action'] ) {
-            $merchant_id = get_user_meta( dokan_get_current_user_id(), '_dokan_paypal_marketplace_merchant_id', true );
+        if ( isset( $get_data['action'] ) && 'dokan-paypal-merchant-status-update' === $get_data['action'] ) {
+            $merchant_id = Helper::get_seller_merchant_id( dokan_get_current_user_id() );
             $this->validate_merchant_status( $merchant_id );
         }
     }
@@ -123,7 +123,7 @@ class Manager {
     public function handle_paypal_marketplace_connect_success_response() {
         $user_id = dokan_get_current_user_id();
 
-        $paypal_settings = get_user_meta( $user_id, '_dokan_paypal_marketplace_settings', true );
+        $paypal_settings = get_user_meta( $user_id, Helper::get_seller_marketplace_settings_key(), true );
 
         $processor     = Processor::init();
         $merchant_data = $processor->get_merchant_id( $paypal_settings['tracking_id'] );
@@ -143,13 +143,13 @@ class Manager {
 
         //storing paypal merchant id
         $merchant_id = $merchant_data['merchant_id'];
-        update_user_meta( $user_id, '_dokan_paypal_marketplace_merchant_id', $merchant_id );
+        update_user_meta( $user_id, Helper::get_seller_merchant_id_key(), $merchant_id );
 
         $paypal_settings['connection_status'] = 'success';
 
         update_user_meta(
             $user_id,
-            '_dokan_paypal_marketplace_settings',
+            Helper::get_seller_marketplace_settings_key(),
             $paypal_settings
         );
 
@@ -192,9 +192,9 @@ class Manager {
         }
 
         $user_id = dokan_get_current_user_id();
-        update_user_meta( $user_id, '_dokan_paypal_enable_for_receive_payment', false );
-        update_user_meta( $user_id, '_dokan_paypal_payments_receivable', $merchant_status['payments_receivable'] );
-        update_user_meta( $user_id, '_dokan_paypal_primary_email_confirmed', $merchant_status['primary_email_confirmed'] );
+        update_user_meta( $user_id, Helper::get_seller_enabled_for_received_payment_key(), false );
+        update_user_meta( $user_id, Helper::get_seller_payments_receivable_key(), $merchant_status['payments_receivable'] );
+        update_user_meta( $user_id, Helper::get_seller_primary_email_confirmed_key(), $merchant_status['primary_email_confirmed'] );
 
         //check if the user is able to receive payment
         if ( $merchant_status['payments_receivable'] && $merchant_status['primary_email_confirmed'] ) {
@@ -203,7 +203,7 @@ class Manager {
             array_map(
                 function ( $integration ) use ( $user_id ) {
                     if ( 'OAUTH_THIRD_PARTY' === $integration['integration_type'] && count( $integration['oauth_third_party'] ) ) {
-                        update_user_meta( $user_id, '_dokan_paypal_enable_for_receive_payment', true );
+                        update_user_meta( $user_id, Helper::get_seller_enabled_for_received_payment_key(), true );
                     }
                 }, $oauth_integrations
             );
@@ -215,7 +215,7 @@ class Manager {
         array_map(
             function ( $value ) use ( $user_id ) {
                 if ( 'PPCP_CUSTOM' === $value['name'] && 'SUBSCRIBED' === $value['vetting_status'] ) {
-                    update_user_meta( $user_id, '_dokan_paypal_enable_for_ucc', true );
+                    update_user_meta( $user_id, Helper::get_seller_enable_for_ucc_key(), true );
                 }
             }, $products
         );
@@ -230,7 +230,7 @@ class Manager {
      *
      * @return void
      */
-    public function insert_into_vendor_balance( array $withdraw ) {
+    public function insert_into_vendor_balance( $withdraw ) {
         global $wpdb;
 
         //update debit amount in vendor table where trn_type is `dokan_orders`
@@ -292,7 +292,7 @@ class Manager {
      *
      * @return void
      */
-    public function process_seller_withdraw( array $withdraw ) {
+    public function process_seller_withdraw( $withdraw ) {
         $ip = dokan_get_client_ip();
 
         $data = [
@@ -368,12 +368,13 @@ class Manager {
                 );
             }
 
-            update_post_meta( $_order->get_id(), $meta_key_prefix . 'capture_id', $capture_id );
-            update_post_meta( $_order->get_id(), 'dokan_gateway_fee', $paypal_processing_fee );
-            update_post_meta( $_order->get_id(), 'dokan_gateway_fee_paid_by', 'seller' );
-            update_post_meta( $_order->get_id(), $meta_key_prefix . 'processing_fee', $paypal_processing_fee );
-            update_post_meta( $_order->get_id(), $meta_key_prefix . 'processing_currency', $paypal_processing_fee_currency );
-            update_post_meta( $_order->get_id(), $meta_key_prefix . 'platform_fee', $platform_fee );
+            $_order->update_meta_data( $meta_key_prefix . 'capture_id', $capture_id );
+            $_order->update_meta_data( $meta_key_prefix . 'processing_fee', $paypal_processing_fee );
+            $_order->update_meta_data( $meta_key_prefix . 'processing_currency', $paypal_processing_fee_currency );
+            $_order->update_meta_data( $meta_key_prefix . 'platform_fee', $platform_fee );
+            $_order->update_meta_data( 'dokan_gateway_fee', $paypal_processing_fee );
+            $_order->update_meta_data( 'dokan_gateway_fee_paid_by', 'seller' );
+            $_order->save_meta_data();
 
             $seller_id = dokan_get_seller_id_by_order( $_order->get_id() );
             $withdraw_data = [

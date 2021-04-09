@@ -36,9 +36,7 @@ class Ajax {
     public function handle_paypal_marketplace_connect() {
         $post_data = wp_unslash( $_POST );
 
-        $nonce = wp_verify_nonce( sanitize_text_field( $post_data['nonce'] ), 'paypal-marketplace-connect' );
-
-        if ( isset( $post_data['nonce'] ) && ! $nonce ) {
+        if ( ! isset( $post_data['nonce'] ) || ! wp_verify_nonce( sanitize_key( $post_data['nonce'] ), 'dokan-paypal-marketplace-connect' ) ) {
             wp_send_json_error(
                 [
                     'type'    => 'nonce',
@@ -54,12 +52,12 @@ class Ajax {
             wp_send_json_error(
                 [
                     'type'    => 'error',
-                    'message' => __( 'Email address required', 'dokan-lite' ),
+                    'message' => __( 'Email address field is required.', 'dokan-lite' ),
                 ]
             );
         }
 
-        $current_user   = _wp_get_current_user();
+        $current_user   = get_user_by( 'ID', $user_id );
         $tracking_id    = '_dokan_paypal_' . $current_user->user_login . '_' . $user_id;
         $dokan_settings = get_user_meta( $user_id, 'dokan_profile_settings', true );
 
@@ -108,7 +106,7 @@ class Ajax {
         //keeping email and partner id for later use
         update_user_meta(
             $user_id,
-            '_dokan_paypal_marketplace_settings',
+            Helper::get_seller_marketplace_settings_key(),
             [
                 'connect_process_started' => true,
                 'connection_status'       => 'pending',

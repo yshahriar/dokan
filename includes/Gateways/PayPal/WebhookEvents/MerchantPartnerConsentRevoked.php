@@ -37,7 +37,7 @@ class MerchantPartnerConsentRevoked extends WebhookEventHandler {
         $event       = $this->get_event();
         $merchant_id = sanitize_text_field( $event->resource->merchant_id );
 
-        $user_id = Helper::get_user_id( $merchant_id );
+        $user_id = Helper::get_user_id_by_merchant_id( $merchant_id );
 
         if ( ! $user_id ) {
             exit;

@@ -44,11 +44,11 @@ class CartHandler extends DokanPayPal {
         }
 
         // if our payment gateway is disabled
-        if ( 'no' === $this->enabled ) {
+        if ( ! Helper::is_enabled() ) {
             return;
         }
 
-        if ( 'smart' !== $this->get_option( 'button_type' ) ) {
+        if ( 'smart' !== Helper::get_button_type() ) {
             return;
         }
 
@@ -105,7 +105,7 @@ class CartHandler extends DokanPayPal {
                 $product_id = $item['data']->get_id();
                 $seller_id  = get_post_field( 'post_author', $product_id );
 
-                $merchant_id = get_user_meta( $seller_id, '_dokan_paypal_marketplace_merchant_id', true );
+                $merchant_id = Helper::get_seller_merchant_id( $seller_id );
                 $merchant_id = apply_filters( 'dokan_paypal_marketplace_merchant_id', $merchant_id, $product_id );
 
                 $paypal_merchant_ids[ 'seller_' . $seller_id ] = $merchant_id;
@@ -124,7 +124,7 @@ class CartHandler extends DokanPayPal {
                     $product_id = $line_item->get_product_id();
                     $seller_id  = get_post_field( 'post_author', $product_id );
 
-                    $merchant_id = get_user_meta( $seller_id, '_dokan_paypal_marketplace_merchant_id', true );
+                    $merchant_id = Helper::get_seller_merchant_id( $seller_id );
                     $merchant_id = apply_filters( 'dokan_paypal_marketplace_merchant_id', $merchant_id, $product_id );
 
                     $paypal_merchant_ids[ 'seller_' . $seller_id ] = $merchant_id;
@@ -146,15 +146,15 @@ class CartHandler extends DokanPayPal {
                 $client_token = $processor->get_generated_client_token();
 
                 if ( is_wp_error( $client_token ) ) {
-                    error_log( 'dokan paypal marketplace generated access token error', $client_token );
+                    dokan_log( 'dokan paypal marketplace generated access token error: ' . $client_token->get_error_message() );
+                } else {
+                    $data_client_token = 'data-client-token="' . $client_token . '"';
                 }
-
-                $data_client_token = 'data-client-token="' . $client_token . '"';
             }
 
             //@codingStandardsIgnoreStart
             $tag = '<script async type="text/javascript" src="' . $source . '" id="' . $handle . '-js"
-data-merchant-id="' . implode( ',', $paypal_merchant_ids ) . '" ' . $data_client_token . ' data-partner-attribution-id="weDevs_SP_Dokan"></script>';
+data-merchant-id="' . implode( ',', $paypal_merchant_ids ) . '" ' . $data_client_token . ' data-partner-attribution-id="' . Processor::BN_CODE . '"></script>';
             //@codingStandardsIgnoreEnd
         }
 
@@ -172,20 +172,17 @@ data-merchant-id="' . implode( ',', $paypal_merchant_ids ) . '" ' . $data_client
         if ( ! apply_filters( 'dokan_paypal_display_paypal_button', true ) ) {
             return;
         }
-
-        ?>
-
-        <img src="<?php echo DOKAN_PLUGIN_ASSEST . '/images/spinner-2x.gif'; ?>" class="paypal-loader" style="margin: 0 auto;" alt="PayPal is loading...">
-
-        <div id="paypal-button-container" style="display:none;">
-            <?php if ( Helper::is_ucc_enabled_for_all_seller_in_cart() ) : ?>
-                <div class="unbranded_checkout">
-                    <a id="pay_unbranded_order" href="#" class="button alt" value="Place order">Pay</a>
-                    <p class="text-center">OR</p>
+        if ( Helper::is_ucc_enabled_for_all_seller_in_cart() ) :
+			?>
+            <img src="<?php echo DOKAN_PLUGIN_ASSEST . '/images/spinner-2x.gif'; ?>" class="paypal-loader" style="margin: 0 auto;" alt="PayPal is loading...">
+                <div id="paypal-button-container" style="display:none;">
+                    <div class="unbranded_checkout">
+                        <a id="pay_unbranded_order" href="#" class="button alt" value="Place order"><?php esc_attr_e( 'Pay', 'dokan-lite' ); ?></a>
+                        <p class="text-center"><?php esc_attr_e( 'OR', 'dokan-lite' ); ?></p>
+                    </div>
                 </div>
-            <?php endif; ?>
-        </div>
-        <?php
+			<?php
+        endif;
     }
 
     /**
@@ -199,10 +196,6 @@ data-merchant-id="' . implode( ',', $paypal_merchant_ids ) . '" ' . $data_client
      * @return void
      */
     public function after_checkout_validation( $data, $errors ) {
-        if ( 'yes' === $this->get_option( 'allow_non_connected_seller' ) ) {
-            return;
-        }
-
         if ( $this->id !== $data['payment_method'] ) {
             return;
         }
@@ -210,14 +203,18 @@ data-merchant-id="' . implode( ',', $paypal_merchant_ids ) . '" ' . $data_client
         $available_vendors = [];
         foreach ( WC()->cart->get_cart() as $item ) {
             $product_id = $item['data']->get_id();
+            // check if this is a vendor subscription product
+            if ( Helper::is_vendor_subscription_product( $product_id ) ) {
+                continue;
+            }
 
             $available_vendors[ get_post_field( 'post_author', $product_id ) ][] = $item['data'];
         }
 
         foreach ( array_keys( $available_vendors ) as $vendor_id ) {
             if ( ! Helper::is_seller_enable_for_receive_payment( $vendor_id ) ) {
-                $vendor      = dokan()->vendor->get( $vendor_id );
-                $vendor_name = sprintf( '<a href="%s">%s</a>', esc_url( $vendor->get_shop_url() ), $vendor->get_shop_name() );
+                //$vendor      = dokan()->vendor->get( $vendor_id );
+                //$vendor_name = sprintf( '<a href="%s">%s</a>', esc_url( $vendor->get_shop_url() ), $vendor->get_shop_name() );
 
                 $vendor_products = [];
                 foreach ( $available_vendors[ $vendor_id ] as $product ) {
@@ -241,9 +238,7 @@ data-merchant-id="' . implode( ',', $paypal_merchant_ids ) . '" ' . $data_client
      * @return string
      */
     public function get_paypal_sdk_url() {
-        $prefix   = 'yes' === $this->get_option( 'test_mode' ) ? 'test_' : '';
-        $app_user = $this->get_option( $prefix . 'app_user' );
-
+        $client_id         = Helper::get_client_id();
         $paypal_js_sdk_url = esc_url( 'https://www.paypal.com/sdk/js?' );
 
         //add hosted fields component if ucc mode is enabled
@@ -252,7 +247,7 @@ data-merchant-id="' . implode( ',', $paypal_merchant_ids ) . '" ' . $data_client
         }
 
         $currency = get_woocommerce_currency();
-        $paypal_js_sdk_url .= "client-id={$app_user}&currency={$currency}&intent=capture";
+        $paypal_js_sdk_url .= "client-id={$client_id}&currency={$currency}&intent=capture";
 
         return $paypal_js_sdk_url;
     }

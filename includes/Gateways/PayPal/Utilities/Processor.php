@@ -27,7 +27,7 @@ class Processor {
     /**
      * @var string
      */
-    protected $bn_code = 'weDevs_SP_Dokan';
+    const BN_CODE = 'weDevs_SP_Dokan';
 
     /**
      * @var string
@@ -88,9 +88,9 @@ class Processor {
                 'partner_logo_url'       => DOKAN_PLUGIN_ASSEST . '/images/dokan-logo.png',
                 'return_url'             => add_query_arg(
                     [
-                        'action'   => 'paypal-marketplace-connect-success',
+                        'action'   => 'dokan-paypal-marketplace-connect-success',
                         'status'   => 'success',
-                        '_wpnonce' => wp_create_nonce( 'paypal-marketplace-connect-success' ),
+                        '_wpnonce' => wp_create_nonce( 'dokan-paypal-marketplace-connect-success' ),
                     ],
                     dokan_get_navigation_url( 'settings/payment' )
                 ),
@@ -202,7 +202,7 @@ class Processor {
         $url                             = $this->make_paypal_url( 'v2/checkout/orders' );
         $this->additional_request_header = [
             'Prefer'                        => 'return=representation',
-            'PayPal-Partner-Attribution-Id' => $this->bn_code,
+            'PayPal-Partner-Attribution-Id' => self::BN_CODE,
         ];
 
         $response = $this->make_request( $url, wp_json_encode( $order_data ) );
@@ -234,7 +234,7 @@ class Processor {
         $url                             = $this->make_paypal_url( "v2/checkout/orders/{$order_id}/capture" );
         $this->additional_request_header = [
             'Prefer'                        => 'return=representation',
-            'PayPal-Partner-Attribution-Id' => $this->bn_code,
+            'PayPal-Partner-Attribution-Id' => self::BN_CODE,
             'PayPal-Request-Id'             => $order_id,
         ];
 
@@ -437,7 +437,7 @@ class Processor {
             return $response;
         }
 
-        $body            = wp_remote_retrieve_body( $response );
+        $body            = json_decode( wp_remote_retrieve_body( $response ), true );
         $paypal_debug_id = wp_remote_retrieve_header( $response, 'paypal-debug-id' );
 
         if (
@@ -447,8 +447,6 @@ class Processor {
         ) {
             return new \WP_Error( 'dokan_paypal_request_error', $body, [ 'paypal_debug_id' => $paypal_debug_id ] );
         }
-
-        $data = json_decode( $body, true );
 
         if ( $paypal_debug_id ) {
             $data['paypal_debug_id'] = $paypal_debug_id;

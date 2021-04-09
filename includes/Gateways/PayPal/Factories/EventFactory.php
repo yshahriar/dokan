@@ -58,7 +58,7 @@ class EventFactory {
      *
      * @since DOKAN_LITE_SINCE
      *
-     * @return \WebhookEventHandler instance
+     * @return WebhookEventHandler|void instance
      * @throws DokanException
      */
     public function get( $event ) {

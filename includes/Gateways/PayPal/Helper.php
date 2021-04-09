@@ -13,6 +13,177 @@ namespace WeDevs\Dokan\Gateways\PayPal;
 class Helper {
 
     /**
+     * Get PayPal gateway id
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return string
+     */
+    public static function get_gateway_id() {
+        return 'dokan_paypal_marketplace';
+    }
+
+    /**
+     * Get settings of the gateway
+     *
+     * @param null $key
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return mixed|void
+     */
+    public static function get_settings( $key = null ) {
+        $settings = get_option( 'woocommerce_' . static::get_gateway_id() . '_settings', [] );
+
+        if ( $key && isset( $settings[ $key ] ) ) {
+            return $settings[ $key ];
+        }
+
+        return $settings;
+    }
+
+    /**
+     * Check whether it's enabled or not
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return bool
+     */
+    public static function is_enabled() {
+        $settings = static::get_settings();
+
+        return ! empty( $settings['enabled'] ) && 'yes' === $settings['enabled'];
+    }
+
+    /**
+     * Check if this gateway is enabled and ready to use
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return bool
+     */
+    public static function is_ready() {
+        if ( ! static::is_enabled() ||
+            empty( static::get_partner_id() ) ||
+            empty( static::get_client_id() ) ||
+            empty( static::get_client_secret() ) ) {
+            return false;
+        }
+
+        if ( ! is_ssl() && ! static::is_test_mode() ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if the seller is enabled for receive paypal payment
+     *
+     * @param $seller_id
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return bool
+     */
+    public static function is_seller_enable_for_receive_payment( $seller_id ) {
+        return static::get_seller_merchant_id( $seller_id ) && static::get_seller_enabled_for_received_payment( $seller_id );
+    }
+
+    /**
+     * Unbranded credit card mode is allowed or not
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return bool
+     */
+    public static function is_ucc_enabled() {
+        $wc_base_country = WC()->countries->get_base_country();
+
+        if (
+            'smart' === static::get_button_type() &&
+            static::is_ucc_mode_allowed() &&
+            array_key_exists( $wc_base_country, static::get_advanced_credit_card_debit_card_supported_countries() ) &&
+            in_array( get_woocommerce_currency(), static::get_advanced_credit_card_debit_card_supported_currencies( $wc_base_country ), true )
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if ucc mode is enabled for all seller in the cart
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return bool
+     */
+    public static function is_ucc_enabled_for_all_seller_in_cart() {
+        $ucc_enabled = static::is_ucc_enabled();
+
+        if ( ! $ucc_enabled ) {
+            return false;
+        }
+
+        foreach ( WC()->cart->get_cart() as $item ) {
+            $product_id = $item['data']->get_id();
+
+            // we do not need to check vendors ucc status if product is a vendor subscription product
+            if ( static::is_vendor_subscription_product( $product_id ) ) {
+                continue;
+            }
+
+            $seller_id = get_post_field( 'post_author', $product_id );
+
+            if ( $ucc_enabled && ! get_user_meta( $seller_id, static::get_seller_enable_for_ucc_key(), true ) ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Check whether the gateway in test mode or not
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return bool
+     */
+    public static function is_test_mode() {
+        $settings = static::get_settings();
+
+        return ! empty( $settings['test_mode'] ) && 'yes' === $settings['test_mode'];
+    }
+
+    /**
+     * Check whether the test mode is enabled or not
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return bool
+     */
+    public static function is_debug_log_enabled() {
+        $settings = static::get_settings();
+
+        return ! empty( $settings['debug'] ) && 'yes' === $settings['debug'];
+    }
+
+    /**
+     * Check whether Unbranded Credit Card mode is enabled or not
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return bool
+     */
+    public static function is_ucc_mode_allowed() {
+        $settings = static::get_settings();
+
+        return ! empty( $settings['ucc_mode'] ) && 'yes' === $settings['ucc_mode'];
+    }
+
+    /**
      * Get list of supported webhook events
      *
      * @since DOKAN_LITE_SINCE
@@ -156,73 +327,95 @@ class Helper {
     }
 
     /**
-     * Unbranded credit card mode is allowed or not
-     *
      * @since DOKAN_LITE_SINCE
-     *
-     * @return bool
+     * @param bool|null $test_mode
+     * @return string
      */
-    public static function is_ucc_enabled() {
-        $button_type     = dokan()->payment_gateway->paypal_marketplace->paypal_wc_gateway->get_option( 'button_type' );
-        $ucc_mode        = dokan()->payment_gateway->paypal_marketplace->paypal_wc_gateway->get_option( 'ucc_mode' );
-        $wc_base_country = WC()->countries->get_base_country();
-
-        if (
-            'smart' === $button_type &&
-            'yes' === $ucc_mode &&
-            array_key_exists( $wc_base_country, static::get_advanced_credit_card_debit_card_supported_countries() ) &&
-            in_array( get_woocommerce_currency(), static::get_advanced_credit_card_debit_card_supported_currencies( $wc_base_country ), true )
-        ) {
-            return true;
+    public static function get_seller_merchant_id_key( $test_mode = null ) {
+        if ( null === $test_mode ) {
+            $test_mode = static::is_test_mode();
         }
-
-        return false;
+        return $test_mode ? '_dokan_paypal_test_merchant_id' : '_dokan_paypal_merchant_id';
     }
 
     /**
-     * Check if the seller is enabled for receive paypal payment
-     *
-     * @param $seller_id
-     *
      * @since DOKAN_LITE_SINCE
-     *
-     * @return bool
+     * @param bool|null $test_mode
+     * @return string
      */
-    public static function is_seller_enable_for_receive_payment( $seller_id ) {
-        $merchant_id     = get_user_meta( $seller_id, '_dokan_paypal_marketplace_merchant_id', true );
-        $receive_payment = get_user_meta( $seller_id, '_dokan_paypal_enable_for_receive_payment', true );
-
-        if ( $merchant_id && $receive_payment ) {
-            return true;
+    public static function get_seller_enabled_for_received_payment_key( $test_mode = null ) {
+        if ( null === $test_mode ) {
+            $test_mode = static::is_test_mode();
         }
-
-        return false;
+        return $test_mode ? '_dokan_paypal_test_enable_for_receive_payment' : '_dokan_paypal_enable_for_receive_payment';
     }
 
     /**
-     * Check if ucc mode is enabled for all seller in the cart
+     * @since DOKAN_LITE_SINCE
+     * @param bool|null $test_mode
+     * @return string
+     */
+    public static function get_seller_marketplace_settings_key( $test_mode = null ) {
+        if ( null === $test_mode ) {
+            $test_mode = static::is_test_mode();
+        }
+        return $test_mode ? '_dokan_paypal_test_marketplace_settings' : '_dokan_paypal_marketplace_settings';
+    }
+
+    /**
+     * @since DOKAN_LITE_SINCE
+     * @param bool|null $test_mode
+     * @return string
+     */
+    public static function get_seller_payments_receivable_key( $test_mode = null ) {
+        if ( null === $test_mode ) {
+            $test_mode = static::is_test_mode();
+        }
+        return $test_mode ? '_dokan_paypal_test_payments_receivable' : '_dokan_paypal_payments_receivable';
+    }
+
+    /**
+     * @since DOKAN_LITE_SINCE
+     * @param bool|null $test_mode
+     * @return string
+     */
+    public static function get_seller_primary_email_confirmed_key( $test_mode = null ) {
+        if ( null === $test_mode ) {
+            $test_mode = static::is_test_mode();
+        }
+        return $test_mode ? '_dokan_paypal_test_primary_email_confirmed' : '_dokan_paypal_primary_email_confirmed';
+    }
+
+    /**
+     * @since DOKAN_LITE_SINCE
+     * @param bool|null $test_mode
+     * @return string
+     */
+    public static function get_seller_enable_for_ucc_key( $test_mode = null ) {
+        if ( null === $test_mode ) {
+            $test_mode = static::is_test_mode();
+        }
+        return $test_mode ? '_dokan_paypal_test_enable_for_ucc' : '_dokan_paypal_enable_for_ucc';
+    }
+
+    /**
      *
      * @since DOKAN_LITE_SINCE
-     *
-     * @return bool
+     * @param int $seller_id
+     * @return string
      */
-    public static function is_ucc_enabled_for_all_seller_in_cart() {
-        $ucc_enabled = static::is_ucc_enabled();
+    public static function get_seller_merchant_id( $seller_id ) {
+        return get_user_meta( $seller_id, static::get_seller_merchant_id_key(), true );
+    }
 
-        if ( ! $ucc_enabled ) {
-            return false;
-        }
-
-        foreach ( WC()->cart->get_cart() as $item ) {
-            $product_id = $item['data']->get_id();
-            $seller_id  = get_post_field( 'post_author', $product_id );
-
-            if ( $ucc_enabled && ! get_user_meta( $seller_id, '_dokan_paypal_enable_for_ucc', true ) ) {
-                return false;
-            }
-        }
-
-        return true;
+    /**
+     *
+     * @since DOKAN_LITE_SINCE
+     * @param int $seller_id
+     * @return string
+     */
+    public static function get_seller_enabled_for_received_payment( $seller_id ) {
+        return get_user_meta( $seller_id, static::get_seller_enabled_for_received_payment_key(), true );
     }
 
     /**
@@ -298,22 +491,11 @@ class Helper {
     }
 
     /**
-     * Get PayPal gateway id
-     *
-     * @since DOKAN_LITE_SINCE
-     *
-     * @return string
-     */
-    public static function get_gateway_id() {
-        return 'dokan_paypal_marketplace';
-    }
-
-    /**
      * Log PayPal error data with debug id
      *
-     * @param $id
-     * @param $error
-     * @param $meta_key
+     * @param int $id
+     * @param \WP_Error $error
+     * @param string $meta_key
      *
      * @param string $context
      *
@@ -348,35 +530,18 @@ class Helper {
      *
      * @return int
      */
-    public static function get_user_id( $merchant_id ) {
+    public static function get_user_id_by_merchant_id( $merchant_id ) {
         global $wpdb;
 
         $user_id = $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT `user_id` FROM $wpdb->usermeta WHERE `meta_key` = %s AND `meta_value`= %s",
-                '_dokan_paypal_marketplace_merchant_id',
+                static::get_seller_merchant_id_key(),
                 $merchant_id
             )
         );
 
         return absint( $user_id );
-    }
-
-    /**
-     * Check if the paypal payment method is enabled or not
-     *
-     * @since DOKAN_LITE_SINCE
-     *
-     * @return bool
-     */
-    public static function is_paypal_enabled() {
-        $paypal_enabled = dokan()->payment_gateway->paypal_marketplace->paypal_wc_gateway->get_option( 'enabled' );
-
-        if ( 'no' === $paypal_enabled ) {
-            return false;
-        }
-
-        return true;
     }
 
     /**
@@ -405,36 +570,169 @@ class Helper {
     public static function get_webhook_events_for_notification() {
         $events = array_keys( static::get_supported_webhook_events() );
 
-        $events = array_merge( $events, [
-            'BILLING.SUBSCRIPTION.ACTIVATED',
-            'BILLING.SUBSCRIPTION.CANCELLED',
-            'BILLING.SUBSCRIPTION.PAYMENT.FAILED',
-            'PAYMENT.SALE.COMPLETED',
-        ] );
+        $events = array_merge(
+            $events, [
+				'BILLING.SUBSCRIPTION.ACTIVATED',
+				'BILLING.SUBSCRIPTION.CANCELLED',
+				'BILLING.SUBSCRIPTION.PAYMENT.FAILED',
+				'PAYMENT.SALE.COMPLETED',
+			]
+        );
 
-        $notification_events = array_map( function ( $event ) {
-            return [ 'name' => $event ];
-        }, $events );
+        $notification_events = array_map(
+            function ( $event ) {
+                return [ 'name' => $event ];
+            }, $events
+        );
 
         return $notification_events;
     }
 
     /**
-     * Get settings of the gateway
-     *
-     * @param null $key
+     * Get PayPal client id
      *
      * @since DOKAN_LITE_SINCE
      *
-     * @return mixed|void
+     * @return string
      */
-    public static function get_settings( $key = null ) {
-        $settings = get_option( 'woocommerce_' . static::get_gateway_id() . '_settings', [] );
+    public static function get_client_id() {
+        $key      = static::is_test_mode() ? 'test_app_user' : 'app_user';
+        $settings = static::get_settings();
 
-        if ( $key && isset( $settings[ $key ] ) ) {
-            return $settings[ $key ];
+        return ! empty( $settings[ $key ] ) ? $settings[ $key ] : '';
+    }
+
+    /**
+     * Get PayPal client secret key
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return string
+     */
+    public static function get_client_secret() {
+        $key      = static::is_test_mode() ? 'test_app_pass' : 'app_pass';
+        $settings = static::get_settings();
+
+        return ! empty( $settings[ $key ] ) ? $settings[ $key ] : '';
+    }
+
+    /**
+     * Get Paypal partner id
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return string
+     */
+    public static function get_partner_id() {
+        $key      = 'partner_id';
+        $settings = static::get_settings();
+
+        return ! empty( $settings[ $key ] ) ? $settings[ $key ] : '';
+    }
+
+    /**
+     * Get client id
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return string
+     */
+    public static function get_button_type() {
+        $key      = 'button_type';
+        $settings = static::get_settings();
+
+        return ! empty( $settings[ $key ] ) ? $settings[ $key ] : '';
+    }
+
+    /**
+     * Get Cart item quantity exceeded error message
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return string
+     */
+    public static function get_max_quantity_error_message() {
+        $key      = 'max_error';
+        $settings = static::get_settings();
+
+        return ! empty( $settings[ $key ] ) ? $settings[ $key ] : '';
+    }
+
+
+
+    /**
+     * Check wheter subscription module is enabled or not
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return bool
+     */
+    public static function has_vendor_subscription_module() {
+        // don't confused with product_subscription, id for vendor subscription module is product_subscription
+        return function_exists( 'dokan_pro' ) && dokan_pro()->module->is_active( 'product_subscription' );
+    }
+
+    /**
+     * Get subscription product from an order
+     * @param \WC_Order $order
+     * @since DOKAN_LITE_SINCE
+     * @return \WC_Product|bool|null
+     */
+    public static function get_vendor_subscription_product_by_order( $order ) {
+        foreach ( $order->get_items() as $item ) {
+            $product = $item->get_product();
+
+            if ( 'product_pack' === $product->get_type() ) {
+                return $product;
+            }
         }
 
-        return $settings;
+        return null;
+    }
+
+    /**
+     * Check if the order is a subscription order
+     *
+     * @param \WC_Order $order
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return bool
+     **/
+    public static function is_vendor_subscription_order( $order ) {
+        if ( ! static::has_vendor_subscription_module() ) {
+            return false;
+        }
+
+        $product = static::get_vendor_subscription_product_by_order( $order );
+
+        return $product ? true : false;
+    }
+
+    /**
+     * Check if the order is a subscription order
+     *
+     * @param \WC_Product|int $product
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return bool
+     **/
+    public static function is_vendor_subscription_product( $product ) {
+        if ( is_int( $product ) ) {
+            $product = wc_get_product( $product );
+        }
+
+        if ( ! $product instanceof \WC_Product ) {
+            return false;
+        }
+
+        if ( ! self::has_vendor_subscription_module() ) {
+            return false;
+        }
+
+        if ( 'product_pack' === $product->get_type() ) {
+            return true;
+        }
+
+        return false;
     }
 }

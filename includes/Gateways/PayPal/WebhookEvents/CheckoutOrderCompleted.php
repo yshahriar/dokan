@@ -60,6 +60,6 @@ class CheckoutOrderCompleted extends WebhookEventHandler {
 
         dokan()->payment_gateway->paypal_marketplace->store_capture_payment_data( $purchase_units, $order );
 
-        do_action( 'dokan_paypal_capture_payment_completed', $order, $capture_payment );
+        do_action( 'dokan_paypal_capture_payment_completed', $order, [] );
     }
 }

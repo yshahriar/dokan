@@ -1,4 +1,4 @@
-<div class="notice notice-warning is-dismissible">
+<div class="notice notice-warning">
     <h4>
         <?php _e( 'PayPal Webhook', 'dokan-lite' ); ?>
     </h4>
