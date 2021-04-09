@@ -113,6 +113,7 @@ class VendorWithdrawMethod {
 
         // delete user metas
         $delete_metas = [
+            Helper::get_seller_merchant_id_key(),
             Helper::get_seller_enabled_for_received_payment_key(),
             Helper::get_seller_payments_receivable_key(),
             Helper::get_seller_primary_email_confirmed_key(),
