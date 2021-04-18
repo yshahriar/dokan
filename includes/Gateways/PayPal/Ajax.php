@@ -39,8 +39,16 @@ class Ajax {
         if ( ! isset( $post_data['nonce'] ) || ! wp_verify_nonce( sanitize_key( $post_data['nonce'] ), 'dokan-paypal-marketplace-connect' ) ) {
             wp_send_json_error(
                 [
-                    'type'    => 'nonce',
+                    'type'    => 'error',
                     'message' => __( 'Are you cheating?', 'dokan-lite' ),
+                    'reload'  => true,
+                    'url'     => add_query_arg(
+                        [
+                            'status'  => 'error',
+                            'message' => rawurlencode( __( 'Nonce Verification Failed.', 'dokan-lite' ) ),
+                        ],
+                        dokan_get_navigation_url( 'settings/payment' )
+                    ),
                 ]
             );
         }
@@ -53,6 +61,14 @@ class Ajax {
                 [
                     'type'    => 'error',
                     'message' => __( 'Email address field is required.', 'dokan-lite' ),
+                    'reload'  => true,
+                    'url'     => add_query_arg(
+                        [
+                            'status'  => 'error',
+                            'message' => rawurlencode( __( 'Email address field is required.', 'dokan-lite' ) ),
+                        ],
+                        dokan_get_navigation_url( 'settings/payment' )
+                    ),
                 ]
             );
         }
@@ -72,7 +88,7 @@ class Ajax {
                     'reload'  => true,
                     'url'     => add_query_arg(
                         [
-                            'status'  => 'seller_error',
+                            'status'  => 'error',
                             'message' => rawurlencode( __( 'Selected country is not supported by PayPal. Please change your Country from Vendor Dashboard --> Settings --> Country', 'dokan-lite' ) ),
                         ],
                         dokan_get_navigation_url( 'settings/payment' )
@@ -87,20 +103,15 @@ class Ajax {
         if ( is_wp_error( $paypal_url ) ) {
             // log error message to user meta
             Helper::log_paypal_error( $user_id, $paypal_url, 'create_partner_referral', 'user' );
-
-            $error_message = $paypal_url->get_error_message();
-            if ( is_array( $error_message ) && isset( $error_message['message'] ) ) {
-                $error_message = $error_message['message'];
-            }
-
+            $error_message = Helper::get_error_message( $paypal_url );
             wp_send_json_error(
                 [
                     'type'    => 'error',
                     'reload'  => true,
-                    'message' => __( 'Connect PayPal error', 'dokan-lite' ),
+                    'message' => __( 'Connect to PayPal error', 'dokan-lite' ),
                     'url'     => add_query_arg(
                         [
-                            'status'  => 'seller_error',
+                            'status'  => 'error',
                             'message' => rawurlencode( $error_message ),
                         ],
                         dokan_get_navigation_url( 'settings/payment' )
@@ -281,18 +292,18 @@ class Ajax {
         $capture_payment = $processor->capture_payment( $paypal_order_id );
 
         if ( is_wp_error( $capture_payment ) ) {
-            Helper::log_paypal_error( $order->get_id(), $capture_payment, 'capture_payment' );
+            Helper::log_paypal_error( $order->get_id(), $capture_payment, 'dpm_capture_payment' );
 
             wp_send_json_error(
                 [
                     'type'    => 'paypal_capture_payment',
                     'message' => __( 'Error in capturing payment.', 'dokan-lite' ),
-                    'data'    => $capture_payment->get_error_messages(),
+                    'data'    => Helper::get_error_message( $capture_payment ),
                 ]
             );
         }
 
-        dokan_log( "[Dokan PayPal Marketplace] Capture Payment:\n" . print_r( $capture_payment, true ) );
+        //dokan_log( "[Dokan PayPal Marketplace] Capture Payment:\n" . print_r( $capture_payment, true ) );
 
         $order_id = $capture_payment['purchase_units'][0]['invoice_id'];
         $order    = wc_get_order( $order_id );
@@ -304,9 +315,16 @@ class Ajax {
             $capture_payment['paypal_debug_id']
         );
 
+        $test_mode = Helper::is_test_mode() ? __( 'PayPal Sandbox Order ID', 'dokan-lite' ) : __( 'PayPal Order ID', 'dokan-lite' );
         $order->add_order_note(
-            /* translators: %s: paypal order id */
-            sprintf( __( 'PayPal payment completed. PayPal Order ID #%s', 'dokan-lite' ), $paypal_order_id )
+            sprintf(
+                /* translators: 1) wc order number, 2) payment gateway title, 3) PayPal order text 4) PayPal order number. */
+                __( 'Order %1$s payment is completed via %2$s (%3$s: %4$s)', 'dokan-lite' ),
+                $order->get_order_number(),
+                Helper::get_gateway_title(),
+                $test_mode,
+                $paypal_order_id
+            )
         );
 
         $order->payment_complete();

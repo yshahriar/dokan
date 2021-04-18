@@ -2,6 +2,8 @@
 
 namespace WeDevs\Dokan\Gateways\PayPal;
 
+use WP_Error;
+
 /**
  * Class Helper
  * @package WeDevs\Dokan\Gateways\PayPal
@@ -49,6 +51,19 @@ class Helper {
      *
      * @return bool
      */
+    public static function get_gateway_title() {
+        $settings = static::get_settings();
+
+        return ! empty( $settings['title'] ) ? $settings['title'] : __( 'PayPal Marketplace', 'dokan-lite' );
+    }
+
+    /**
+     * Check whether it's enabled or not
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return bool
+     */
     public static function is_enabled() {
         $settings = static::get_settings();
 
@@ -70,8 +85,21 @@ class Helper {
             return false;
         }
 
-        if ( ! is_ssl() && ! static::is_test_mode() ) {
-            //return false;
+        return true;
+    }
+
+    /**
+     * Check if this gateway is enabled and ready to use
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return bool
+     */
+    public static function is_api_ready() {
+        if (
+            empty( static::get_client_id() ) ||
+            empty( static::get_client_secret() ) ) {
+            return false;
         }
 
         return true;
@@ -88,60 +116,6 @@ class Helper {
      */
     public static function is_seller_enable_for_receive_payment( $seller_id ) {
         return static::get_seller_merchant_id( $seller_id ) && static::get_seller_enabled_for_received_payment( $seller_id );
-    }
-
-    /**
-     * Unbranded credit card mode is allowed or not
-     *
-     * @since DOKAN_LITE_SINCE
-     *
-     * @return bool
-     */
-    public static function is_ucc_enabled() {
-        $wc_base_country = WC()->countries->get_base_country();
-
-        if (
-            'smart' === static::get_button_type() &&
-            static::is_ucc_mode_allowed() &&
-            array_key_exists( $wc_base_country, static::get_advanced_credit_card_debit_card_supported_countries() ) &&
-            in_array( get_woocommerce_currency(), static::get_advanced_credit_card_debit_card_supported_currencies( $wc_base_country ), true )
-        ) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Check if ucc mode is enabled for all seller in the cart
-     *
-     * @since DOKAN_LITE_SINCE
-     *
-     * @return bool
-     */
-    public static function is_ucc_enabled_for_all_seller_in_cart() {
-        $ucc_enabled = static::is_ucc_enabled();
-
-        if ( ! $ucc_enabled ) {
-            return false;
-        }
-
-        foreach ( WC()->cart->get_cart() as $item ) {
-            $product_id = $item['data']->get_id();
-
-            // we do not need to check vendors ucc status if product is a vendor subscription product
-            if ( static::is_vendor_subscription_product( $product_id ) ) {
-                continue;
-            }
-
-            $seller_id = get_post_field( 'post_author', $product_id );
-
-            if ( $ucc_enabled && ! get_user_meta( $seller_id, static::get_seller_enable_for_ucc_key(), true ) ) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /**
@@ -184,20 +158,52 @@ class Helper {
     }
 
     /**
-     * Get list of supported webhook events
+     * Unbranded credit card mode is allowed or not
      *
      * @since DOKAN_LITE_SINCE
      *
-     * @return array
+     * @return bool
      */
-    public static function get_supported_webhook_events() {
-        return apply_filters(
-            'dokan_paypal_get_supported_webhook_events', [
-                'CHECKOUT.ORDER.APPROVED'          => 'CheckoutOrderApproved',
-                'CHECKOUT.ORDER.COMPLETED'         => 'CheckoutOrderCompleted',
-                'MERCHANT.PARTNER-CONSENT.REVOKED' => 'MerchantPartnerConsentRevoked',
-            ]
-        );
+    public static function is_ucc_enabled() {
+        $wc_base_country = WC()->countries->get_base_country();
+
+        if (
+            'smart' === static::get_button_type() &&
+            static::is_ucc_mode_allowed() &&
+            array_key_exists( $wc_base_country, static::get_advanced_credit_card_debit_card_supported_countries() ) &&
+            in_array( get_woocommerce_currency(), static::get_advanced_credit_card_debit_card_supported_currencies( $wc_base_country ), true )
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if ucc mode is enabled for all seller in the cart
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return bool
+     */
+    public static function is_ucc_enabled_for_all_seller_in_cart() {
+        $ucc_enabled = static::is_ucc_enabled();
+
+        if ( ! $ucc_enabled ) {
+            return false;
+        }
+
+        foreach ( WC()->cart->get_cart() as $item ) {
+            $product_id = $item['data']->get_id();
+
+            $seller_id = get_post_field( 'post_author', $product_id );
+
+            if ( $ucc_enabled && ! get_user_meta( $seller_id, static::get_seller_enable_for_ucc_key(), true ) ) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -212,6 +218,27 @@ class Helper {
     public static function get_advanced_credit_card_debit_card_supported_countries() {
         $supported_countries = [
             'AU' => 'Australia',
+            'CA' => 'Canada',
+            'FR' => 'France',
+            'IT' => 'Italy',
+            'ES' => 'Spain',
+            'US' => 'United States',
+            'GB' => 'United Kingdom',
+        ];
+
+        return apply_filters( 'dokan_paypal_advanced_credit_card_debit_card_supported_countries', $supported_countries );
+    }
+
+    /**
+     * Get branded payment supported countries
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return array
+     */
+    public static function get_branded_payment_supported_countries() {
+        $supported_countries = [
+            'AU' => 'Australia',
             'AT' => 'Austria',
             'BE' => 'Belgium',
             'BG' => 'Bulgaria',
@@ -223,7 +250,9 @@ class Helper {
             'FI' => 'Finland',
             'FR' => 'France',
             'GR' => 'Greece',
+            'DE' => 'Germany',
             'HU' => 'Hungary',
+            'IE' => 'Ireland',
             'IT' => 'Italy',
             'LV' => 'Latvia',
             'LI' => 'Liechtenstein',
@@ -243,32 +272,7 @@ class Helper {
             'GB' => 'United Kingdom',
         ];
 
-        return apply_filters( 'dokan_paypal_advanced_credit_card_debit_card_supported_countries', $supported_countries );
-    }
-
-    /**
-     * Get advanced credit card debit card supported currencies
-     *
-     * @see https://developer.paypal.com/docs/business/checkout/reference/currency-availability-advanced-cards/
-     *
-     * @param $country_code
-     *
-     * @since DOKAN_LITE_SINCE
-     *
-     * @return array|bool
-     */
-    public static function get_advanced_credit_card_debit_card_supported_currencies( $country_code ) {
-        $supported_countries = static::get_advanced_credit_card_debit_card_supported_countries();
-
-        if ( ! array_key_exists( $country_code, $supported_countries ) ) {
-            return false;
-        }
-
-        if ( 'US' === $country_code ) {
-            return static::get_advanced_credit_card_debit_card_us_supported_currencies();
-        }
-
-        return static::get_supported_currencies();
+        return apply_filters( 'dokan_paypal_branded_payment_supported_countries', $supported_countries );
     }
 
     /**
@@ -281,7 +285,7 @@ class Helper {
      *
      * @return array
      */
-    public static function get_supported_currencies() {
+    public static function get_advanced_credit_card_debit_card_non_us_supported_currencies() {
         return apply_filters(
             'dokan_paypal_supported_currencies', [
                 'AUD',
@@ -324,6 +328,95 @@ class Helper {
                 'USD',
             ]
         );
+    }
+
+    /**
+     *
+     * @doc https://developer.paypal.com/docs/business/develop/currency-codes/
+     * @return array
+     */
+    public static function get_supported_currencies() {
+        $supported_currencies = [
+            'AUD',
+            'BRL',
+            'CAD',
+            'MXN',
+            'NZD',
+            'HKD',
+            'SGD',
+            'USD',
+            'EUR',
+            'JPY',
+            'TRY',
+            'NOK',
+            'CZK',
+            'DKK',
+            'HUF',
+            'ILS',
+            'MYR',
+            'PHP',
+            'PLN',
+            'SEK',
+            'CHF',
+            'TWD',
+            'THB',
+            'GBP',
+            'RMB',
+            'RUB',
+        ];
+
+        return apply_filters( 'dokan_paypal_supported_currencies', $supported_currencies );
+    }
+
+    /**
+     * Get advanced credit card debit card supported currencies
+     *
+     * @see https://developer.paypal.com/docs/business/checkout/reference/currency-availability-advanced-cards/
+     *
+     * @param $country_code
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return array|bool
+     */
+    public static function get_advanced_credit_card_debit_card_supported_currencies( $country_code ) {
+        $supported_countries = static::get_advanced_credit_card_debit_card_supported_countries();
+
+        if ( ! array_key_exists( $country_code, $supported_countries ) ) {
+            return false;
+        }
+
+        if ( 'US' === $country_code ) {
+            return static::get_advanced_credit_card_debit_card_us_supported_currencies();
+        }
+
+        return static::get_advanced_credit_card_debit_card_non_us_supported_currencies();
+    }
+
+    /**
+     * Get PayPal product type based on country
+     *
+     * @param $country_code
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return bool|string
+     */
+    public static function get_product_type( $country_code ) {
+        $ucc_supported_countries        = static::get_advanced_credit_card_debit_card_supported_countries();
+        $branded_supported_countries    = static::get_branded_payment_supported_countries();
+
+        if ( ! array_key_exists( $country_code, array_merge( $ucc_supported_countries, $branded_supported_countries ) ) ) {
+            return false;
+        }
+
+        if ( array_key_exists( $country_code, $ucc_supported_countries ) ) {
+            return 'PPCP';
+        }
+
+        if ( array_key_exists( $country_code, $branded_supported_countries ) ) {
+            return 'EXPRESS_CHECKOUT';
+        }
     }
 
     /**
@@ -419,82 +512,10 @@ class Helper {
     }
 
     /**
-     * Get branded payment supported countries
-     *
-     * @since DOKAN_LITE_SINCE
-     *
-     * @return array
-     */
-    public static function get_branded_payment_supported_countries() {
-        $supported_countries = [
-            'AU' => 'Australia',
-            'AT' => 'Austria',
-            'BE' => 'Belgium',
-            'BG' => 'Bulgaria',
-            'CA' => 'Canada',
-            'CY' => 'Cyprus',
-            'CZ' => 'Czech',
-            'DK' => 'Denmark',
-            'EE' => 'Estonia',
-            'FI' => 'Finland',
-            'FR' => 'France',
-            'GR' => 'Greece',
-            'DE' => 'Germany',
-            'HU' => 'Hungary',
-            'IE' => 'Ireland',
-            'IT' => 'Italy',
-            'LV' => 'Latvia',
-            'LI' => 'Liechtenstein',
-            'LT' => 'Lithuania',
-            'LU' => 'Luxembourg',
-            'MT' => 'Malta',
-            'NL' => 'Netherlands',
-            'NO' => 'Norway',
-            'PL' => 'Poland',
-            'PT' => 'Portugal',
-            'RO' => 'Romania',
-            'SK' => 'Slovakia',
-            'SI' => 'Slovenia',
-            'ES' => 'Spain',
-            'SE' => 'Sweden',
-            'US' => 'United States',
-            'GB' => 'United Kingdom',
-        ];
-
-        return apply_filters( 'dokan_paypal_branded_payment_supported_countries', $supported_countries );
-    }
-
-    /**
-     * Get PayPal product type based on country
-     *
-     * @param $country_code
-     *
-     * @since DOKAN_LITE_SINCE
-     *
-     * @return bool|string
-     */
-    public static function get_product_type( $country_code ) {
-        $branded_ucc_supported_countries = static::get_advanced_credit_card_debit_card_supported_countries();
-        $branded_supported_countries     = static::get_branded_payment_supported_countries();
-
-        if ( ! array_key_exists( $country_code, array_merge( $branded_ucc_supported_countries, $branded_supported_countries ) ) ) {
-            return false;
-        }
-
-        if ( array_key_exists( $country_code, $branded_ucc_supported_countries ) ) {
-            return 'PPCP';
-        }
-
-        if ( array_key_exists( $country_code, $branded_supported_countries ) ) {
-            return 'EXPRESS_CHECKOUT';
-        }
-    }
-
-    /**
      * Log PayPal error data with debug id
      *
      * @param int $id
-     * @param \WP_Error $error
+     * @param WP_Error $error
      * @param string $meta_key
      *
      * @param string $context
@@ -562,6 +583,23 @@ class Helper {
     }
 
     /**
+     * Get list of supported webhook events
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return array
+     */
+    public static function get_supported_webhook_events() {
+        return apply_filters(
+            'dokan_paypal_supported_webhook_events', [
+                'CHECKOUT.ORDER.APPROVED'          => 'CheckoutOrderApproved',
+                'CHECKOUT.ORDER.COMPLETED'         => 'CheckoutOrderCompleted',
+                'MERCHANT.PARTNER-CONSENT.REVOKED' => 'MerchantPartnerConsentRevoked',
+            ]
+        );
+    }
+
+    /**
      * Get webhook events for notification
      *
      * @since DOKAN_LITE_SINCE
@@ -580,13 +618,11 @@ class Helper {
 			]
         );
 
-        $notification_events = array_map(
+        return array_map(
             function ( $event ) {
                 return [ 'name' => $event ];
             }, $events
         );
-
-        return $notification_events;
     }
 
     /**
@@ -659,7 +695,33 @@ class Helper {
         return ! empty( $settings[ $key ] ) ? $settings[ $key ] : '';
     }
 
+    /**
+     * Get webhook key
+     *
+     * @since DOKAN_LITE_SINCE
+     *
+     * @return string
+     */
+    public static function get_webhook_key() {
+        return static::is_test_mode() ? 'dokan_paypal_marketplace_test_webhook' : 'dokan_paypal_marketplace_webhook';
+    }
 
+    /**
+     * Get human readable error message
+     *
+     * @since DOKAN_LITE_SINCE
+     * @param WP_Error $error
+     * @return mixed|string
+     */
+    public static function get_error_message( WP_Error $error ) {
+        $error_message = $error->get_error_message();
+        if ( is_array( $error_message ) && isset( $error_message['details']['description'] ) ) {
+            $error_message = $error_message['details']['description'];
+        } elseif ( is_array( $error_message ) && isset( $error_message['message'] ) ) {
+            $error_message = $error_message['message'];
+        }
+        return $error_message;
+    }
 
     /**
      * Check wheter subscription module is enabled or not

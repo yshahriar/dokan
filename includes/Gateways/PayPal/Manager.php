@@ -121,19 +121,18 @@ class Manager {
      * @return void
      */
     public function handle_paypal_marketplace_connect_success_response() {
-        $user_id = dokan_get_current_user_id();
-
+        $user_id         = dokan_get_current_user_id();
         $paypal_settings = get_user_meta( $user_id, Helper::get_seller_marketplace_settings_key(), true );
-
-        $processor     = Processor::init();
-        $merchant_data = $processor->get_merchant_id( $paypal_settings['tracking_id'] );
+        $processor       = Processor::init();
+        $merchant_data   = $processor->get_merchant_id( $paypal_settings['tracking_id'] );
 
         if ( is_wp_error( $merchant_data ) ) {
+            Helper::log_paypal_error( $user_id, $merchant_data, 'dpm_connect_success_response', 'user' );
             wp_safe_redirect(
                 add_query_arg(
                     [
-                        'status'  => 'paypal-merchant-error',
-                        'message' => $merchant_data['error'],
+                        'status'  => 'error',
+                        'message' => Helper::get_error_message( $merchant_data ),
                     ],
                     dokan_get_navigation_url( 'settings/payment' )
                 )
@@ -177,13 +176,15 @@ class Manager {
     public function validate_merchant_status( $merchant_id ) {
         $processor       = Processor::init();
         $merchant_status = $processor->get_merchant_status( $merchant_id );
+        $user_id         = dokan_get_current_user_id();
 
         if ( is_wp_error( $merchant_status ) ) {
+            Helper::log_paypal_error( $user_id, $merchant_status, 'dpm_validate_merchant_status', 'user' );
             wp_safe_redirect(
                 add_query_arg(
                     [
-                        'status'  => 'paypal-merchant-error',
-                        'message' => $merchant_status['error'],
+                        'status'  => 'error',
+                        'message' => Helper::get_error_message( $merchant_status ),
                     ],
                     dokan_get_navigation_url( 'settings/payment' )
                 )
@@ -191,7 +192,6 @@ class Manager {
             exit();
         }
 
-        $user_id = dokan_get_current_user_id();
         update_user_meta( $user_id, Helper::get_seller_enabled_for_received_payment_key(), false );
         update_user_meta( $user_id, Helper::get_seller_payments_receivable_key(), $merchant_status['payments_receivable'] );
         update_user_meta( $user_id, Helper::get_seller_primary_email_confirmed_key(), $merchant_status['primary_email_confirmed'] );

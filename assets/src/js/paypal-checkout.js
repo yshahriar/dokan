@@ -316,7 +316,7 @@
 
                             if (!formValid) {
                                 dokan_paypal_marketplace.submit_error('<div class="woocommerce-error">' + dokan_paypal.card_info_error_message +'</div>');
-                                return;
+                                return false;
                             }
 
                             var args = {

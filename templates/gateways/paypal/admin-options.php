@@ -8,7 +8,7 @@
         echo wp_kses(
             sprintf(
                 __( 'Set your webhook <code>%s</code> in your PayPal <a href="%s" target="_blank">application settings</a> for payment process.', 'dokan-lite' ),
-                home_url( 'wc-api/dokan-paypal' ),
+                home_url( 'wc-api/dokan-paypal', 'https' ),
                 'https://developer.paypal.com/developer/applications/'
             ),
             [

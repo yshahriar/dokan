@@ -17,8 +17,6 @@ use WeDevs\Dokan\Gateways\PayPal\Utilities\Processor;
  */
 class DokanPayPal extends WC_Payment_Gateway {
 
-    public $notify_url;
-
     /**
      * Constructor for the gateway.
      *
@@ -33,15 +31,10 @@ class DokanPayPal extends WC_Payment_Gateway {
         $this->init_form_fields();
         $this->init_settings();
 
-        // Logs
-        if ( 'yes' === $this->debug ) {
-            $this->log = new WC_Logger();
-        }
-
         $this->init_hooks();
 
         if ( ! $this->is_valid_for_use() ) {
-            $this->enabled = false;
+            $this->enabled = 'no';
         }
     }
 
@@ -63,19 +56,12 @@ class DokanPayPal extends WC_Payment_Gateway {
         $title                = $this->get_option( 'title' );
         $this->title          = empty( $title ) ? __( 'PayPal Marketplace', 'dokan-lite' ) : $title;
         $this->test_mode      = $this->get_option( 'test_mode' );
-        $this->send_shipping  = $this->get_option( 'send_shipping' );
-        $this->single_mode    = $this->get_option( 'single_mode' );
-        $this->fees_payer     = $this->get_option( 'fees_payer' );
         $this->app_user       = $this->get_option( 'app_user' );
         $this->app_pass       = $this->get_option( 'app_pass' );
-        $this->app_sig        = $this->get_option( 'app_sig' );
         $this->app_id         = $this->get_option( 'app_id' );
         $this->test_app_user  = $this->get_option( 'test_app_user' );
         $this->test_app_pass  = $this->get_option( 'test_app_pass' );
-        $this->test_app_sig   = $this->get_option( 'test_app_sig' );
         $this->debug          = $this->get_option( 'debug' );
-        $this->pa_admin_email = $this->get_option( 'pa_admin_email' );
-        $this->notify_url     = str_replace( 'https:', 'http:', add_query_arg( 'wc-api', 'Dokan_PayPal', home_url( '/' ) ) );
     }
 
     /**
@@ -155,13 +141,14 @@ class DokanPayPal extends WC_Payment_Gateway {
                 'placeholder' => 'Sandbox Client Secret',
             ],
             'button_type'    => [
-                'title'   => __( 'Payment Button Type', 'dokan-lite' ),
-                'type'    => 'select',
-                'default' => 'standard',
-                'options' => [
-                    'standard' => 'Standard Button',
-                    'smart'    => 'Smart Payment Buttons',
-                ],
+                'title'         => __( 'Payment Button Type', 'dokan-lite' ),
+                'type'          => 'select',
+                'description'   => __( 'Smart Payment Buttons type is recommended.', 'dokan-lite' ),
+                'default'       => 'smart',
+                'options'       => [
+					'standard' => 'Standard Button',
+					'smart'    => 'Smart Payment Buttons',
+				],
             ],
             'ucc_mode'       => [
                 'title'   => __( 'Allow Unbranded Credit Card', 'dokan-lite' ),
@@ -175,14 +162,6 @@ class DokanPayPal extends WC_Payment_Gateway {
                 'description' => __( 'This is the error message displayed to a shopper when attempting to add too many vendor items to the cart due to PayPal limitation.', 'dokan-lite' ),
                 'default'     => __( 'Cart item quantity total exceeded - item not added to cart. Please checkout to purchase the items in your cart.', 'dokan-lite' ),
                 'desc_tip'    => true,
-            ],
-            'debug'          => [
-                'title'       => __( 'Debug Log', 'dokan-lite' ),
-                'type'        => 'checkbox',
-                'label'       => __( 'Enable logging', 'dokan-lite' ),
-                'default'     => 'no',
-                /* translators: %s: log */
-                'description' => sprintf( __( 'Log PayPal events, such as IPN requests, inside <code>woocommerce/logs/paypal-%s.txt</code>', 'dokan-lite' ), sanitize_file_name( wp_hash( 'paypal' ) ) ),
             ],
         ];
     }
@@ -208,36 +187,7 @@ class DokanPayPal extends WC_Payment_Gateway {
      * @return bool
      */
     public function is_valid_for_use() {
-        $supported_currencies = [
-            'AUD',
-            'BRL',
-            'CAD',
-            'MXN',
-            'NZD',
-            'HKD',
-            'SGD',
-            'USD',
-            'EUR',
-            'JPY',
-            'TRY',
-            'NOK',
-            'CZK',
-            'DKK',
-            'HUF',
-            'ILS',
-            'MYR',
-            'PHP',
-            'PLN',
-            'SEK',
-            'CHF',
-            'TWD',
-            'THB',
-            'GBP',
-            'RMB',
-            'RUB',
-        ];
-
-        if ( ! in_array( get_woocommerce_currency(), apply_filters( 'woocommerce_paypal_supported_currencies', $supported_currencies ), true ) ) {
+        if ( ! in_array( get_woocommerce_currency(), Helper::get_supported_currencies(), true ) ) {
             return false;
         }
 
@@ -329,12 +279,13 @@ class DokanPayPal extends WC_Payment_Gateway {
         $create_order_url = $processor->create_order( $create_order_data );
 
         if ( is_wp_error( $create_order_url ) ) {
-            wc_add_wp_error_notices( $create_order_url );
-            Helper::log_paypal_error( $order->get_id(), $create_order_url, 'create_order' );
+            $error_message = Helper::get_error_message( $create_order_url );
+            wc_add_wp_error_notices( $error_message );
+            Helper::log_paypal_error( $order->get_id(), $create_order_url, 'dpm_create_order' );
 
             return [
-                'result'   => 'error',
-                'redirect' => $order->get_checkout_order_received_url(),
+                'result'   => 'fail',
+                'redirect' => '',
             ];
         }
         //store paypal debug id & create order id
@@ -349,7 +300,7 @@ class DokanPayPal extends WC_Payment_Gateway {
             'paypal_redirect_url' => $create_order_url['links'][1]['href'],
             'paypal_order_id'     => $create_order_url['id'],
             'redirect'            => $create_order_url['links'][1]['href'],
-            'success_redirect'    => $order->get_checkout_order_received_url(),
+            'success_redirect'    => $this->get_return_url( $order ),
         ];
     }
 
@@ -375,66 +326,6 @@ class DokanPayPal extends WC_Payment_Gateway {
         }
 
         return $state;
-    }
-
-    /**
-     * Add to log file if debug enabled
-     *
-     * @param string $message
-     *
-     * @since DOKAN_LITE_SINCE
-     *
-     * @return void
-     */
-    public function add_log( $message ) {
-        if ( 'yes' === $this->debug ) {
-            $this->log->add( 'dokan-paypal-marketplace', $message );
-        }
-    }
-
-    /**
-     * Admin script
-     *
-     * @since DOKAN_SINCE_LITE
-     *
-     * @return void
-     */
-    public function admin_script() {
-        ?>
-        <script type="text/javascript">
-            ;(function ($) {
-                var inputToggle = function () {
-                    let payment_id_prefix = 'woocommerce_<?php echo $this->id; ?>_';
-
-                    let settings_input_ids = [
-                        'app_user',
-                        'app_pass'
-                    ];
-
-                    if ( $(`#${payment_id_prefix}test_mode`).is(':checked') ) {
-                        settings_input_ids.map(function (id) {
-                            $('#' + payment_id_prefix + 'test_' + id).closest('tr').show();
-                            $('#' + payment_id_prefix + id).closest('tr').hide();
-                        });
-                    } else {
-                        settings_input_ids.map(function (id) {
-                            $('#' + payment_id_prefix + id).closest('tr').show();
-                            $('#' + payment_id_prefix + 'test_' + id).closest('tr').hide();
-                        });
-                    }
-                };
-                inputToggle();
-
-                let payment_id_prefix = 'woocommerce_<?php echo $this->id; ?>_';
-                let test_mode = $(`#${payment_id_prefix}test_mode`);
-
-                test_mode.on('change', function () {
-                    inputToggle();
-                });
-
-            })(jQuery);
-        </script>
-        <?php
     }
 
     /**
@@ -641,29 +532,63 @@ class DokanPayPal extends WC_Payment_Gateway {
      * @return void
      */
     public function admin_options() {
-        dokan_get_template( 'gateways/paypal/admin-options.php' );
-
-        parent::admin_options();
+        if ( $this->is_valid_for_use() ) {
+            dokan_get_template( 'gateways/paypal/admin-options.php' );
+            parent::admin_options();
+        } else {
+            ?>
+            <div class="inline error">
+                <p>
+                    <strong><?php esc_html_e( 'Gateway disabled', 'dokan-lite' ); ?></strong>: <?php esc_html_e( 'Dokan PayPal Marketplace does not support your store currency.', 'dokan-lite' ); ?>
+                </p>
+            </div>
+            <?php
+        }
     }
 
     /**
-     * Currently supported countries
+     * Admin script
      *
-     * @since DOKAN_LITE_SINCE
+     * @since DOKAN_SINCE_LITE
      *
-     * @return array
+     * @return void
      */
-    public function supported_countries() {
-        $supported_countries = [
-            'US' => 'United States',
-            'AU' => 'Australia',
-            'GB' => 'UK',
-            'FR' => 'France',
-            'IT' => 'Italy',
-            'ES' => 'Spain',
-        ];
+    public function admin_script() {
+        ?>
+        <script type="text/javascript">
+            ;(function ($) {
+                var inputToggle = function () {
+                    let payment_id_prefix = 'woocommerce_<?php echo $this->id; ?>_';
 
-        return $supported_countries;
+                    let settings_input_ids = [
+                        'app_user',
+                        'app_pass'
+                    ];
+
+                    if ( $(`#${payment_id_prefix}test_mode`).is(':checked') ) {
+                        settings_input_ids.map(function (id) {
+                            $('#' + payment_id_prefix + 'test_' + id).closest('tr').show();
+                            $('#' + payment_id_prefix + id).closest('tr').hide();
+                        });
+                    } else {
+                        settings_input_ids.map(function (id) {
+                            $('#' + payment_id_prefix + id).closest('tr').show();
+                            $('#' + payment_id_prefix + 'test_' + id).closest('tr').hide();
+                        });
+                    }
+                };
+                inputToggle();
+
+                let payment_id_prefix = 'woocommerce_<?php echo $this->id; ?>_';
+                let test_mode = $(`#${payment_id_prefix}test_mode`);
+
+                test_mode.on('change', function () {
+                    inputToggle();
+                });
+
+            })(jQuery);
+        </script>
+        <?php
     }
 
     /**
@@ -681,14 +606,16 @@ class DokanPayPal extends WC_Payment_Gateway {
         delete_transient( '_dokan_paypal_marketplace_client_token' );
 
         //create webhook automatically
-        if ( ! get_option( '_dokan_paypal_marketplace_webhook', false ) ) {
-            $events = Helper::get_webhook_events_for_notification();
-
-            $processor = Processor::init();
-            $response  = $processor->create_webhook( home_url( 'wc-api/dokan-paypal' ), $events );
-
-            if ( ! is_wp_error( $response ) ) {
-                update_option( '_dokan_paypal_marketplace_webhook', $response['id'] );
+        $instance = dokan()->payment_gateway->paypal_marketplace->paypal_webhook;
+        if ( Helper::is_enabled() ) {
+            //if gateway is enabled, automatically create webhook for this site
+            if ( $instance instanceof \WeDevs\Dokan\Gateways\PayPal\WebhookHandler ) {
+                $instance->register_webhook();
+            }
+        } else {
+            //if gateway is disabled, delete created webhook for this site
+            if ( $instance instanceof \WeDevs\Dokan\Gateways\PayPal\WebhookHandler ) {
+                $instance->deregister_webhook();
             }
         }
 
@@ -727,7 +654,7 @@ class DokanPayPal extends WC_Payment_Gateway {
             return true;
         }
 
-        // check if client provided all the information right
+        // check if admin provided all the api information right
         if ( ! Helper::is_ready() ) {
             return false;
         }
@@ -784,6 +711,26 @@ class DokanPayPal extends WC_Payment_Gateway {
         }
 
         return true;
+    }
+
+    /**
+     * Return whether or not this gateway still requires setup to function.
+     *
+     * When this gateway is toggled on via AJAX, if this returns true a
+     * redirect will occur to the settings page instead.
+     *
+     * @since DOKAN_LITE_SINCE
+     * @return bool
+     */
+    public function needs_setup() {
+        if (
+            empty( Helper::get_partner_id() ) ||
+            empty( Helper::get_client_id() ) ||
+            empty( Helper::get_client_secret() ) ) {
+            return true;
+        }
+
+        return false;
     }
 }
 

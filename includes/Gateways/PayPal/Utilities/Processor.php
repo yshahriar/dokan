@@ -2,6 +2,9 @@
 
 namespace WeDevs\Dokan\Gateways\PayPal\Utilities;
 
+use WeDevs\Dokan\Gateways\PayPal\Helper;
+use WP_Error;
+
 /**
  * Class Processor
  * @package WeDevs\Dokan\Gateways\PayPal\Utilities
@@ -45,7 +48,7 @@ class Processor {
      * @since DOKAN_LITE_SINCE
      */
     public function __construct() {
-        if ( 'yes' === $this->get_option( 'test_mode' ) ) {
+        if ( Helper::is_test_mode() ) {
             $this->test_mode    = true;
             $this->api_base_url = 'https://api.sandbox.paypal.com/';
         }
@@ -77,7 +80,7 @@ class Processor {
      *
      * @since DOKAN_LITE_SINCE
      *
-     * @return string|\WP_Error
+     * @return string|WP_Error
      */
     public function create_partner_referral( $vendor_email_address, $tracking_id, $products = [ 'PPCP' ] ) {
         $partner_referral_data = [
@@ -138,23 +141,21 @@ class Processor {
             return $response;
         }
 
-        return new \WP_Error( 'dokan_paypal_create_partner_referral_error', $response );
+        return new WP_Error( 'dokan_paypal_create_partner_referral_error', $response );
     }
 
     /**
      * Get merchant ID from tracking id
      *
      * @param $tracking_id
-     *
      * @since DOKAN_LITE_SINCE
-     *
-     * @return string|\WP_Error
+     * @return string|WP_Error
      */
     public function get_merchant_id( $tracking_id ) {
-        $partner_id = $this->get_option( 'partner_id' );
+        $partner_id = Helper::get_partner_id();
         $url        = $this->make_paypal_url( "v1/customer/partners/{$partner_id}/merchant-integrations/?tracking_id={$tracking_id}" );
 
-        $response = $this->get_request( $url );
+        $response = $this->make_request( $url, [], 'get' );
 
         if ( is_wp_error( $response ) ) {
             return $response;
@@ -164,23 +165,21 @@ class Processor {
             return $response;
         }
 
-        return new \WP_Error( 'dokan_paypal_get_merchant_id_error', $response );
+        return new WP_Error( 'dokan_paypal_get_merchant_id_error', $response );
     }
 
     /**
      * Get merchant status
      *
-     * @param $merchant_id
-     *
+     * @param string $merchant_id
      * @since DOKAN_LITE_SINCE
-     *
-     * @return array|\WP_Error
+     * @return array|WP_Error
      */
     public function get_merchant_status( $merchant_id ) {
-        $partner_id = $this->get_option( 'partner_id' );
+        $partner_id = Helper::get_partner_id();
         $url        = $this->make_paypal_url( "v1/customer/partners/{$partner_id}/merchant-integrations/{$merchant_id}" );
 
-        $response = $this->get_request( $url );
+        $response = $this->make_request( $url, [], 'get' );
 
         if ( is_wp_error( $response ) ) {
             return $response;
@@ -193,10 +192,8 @@ class Processor {
      * Create order with details in PayPal
      *
      * @param $order_data
-     *
      * @since DOKAN_LITE_SINCE
-     *
-     * @return string|\WP_Error
+     * @return string|WP_Error
      */
     public function create_order( $order_data ) {
         $url                             = $this->make_paypal_url( 'v2/checkout/orders' );
@@ -220,15 +217,15 @@ class Processor {
             return $response;
         }
 
-        return new \WP_Error( 'dokan_paypal_create_order_error', $response );
+        return new WP_Error( 'dokan_paypal_create_order_error', $response );
     }
 
     /**
      * Capture payment
      *
      * @param $order_id
-     *
-     * @return array|bool|\WP_Error
+     * @since DOKAN_LITE_SINCE
+     * @return array|bool|WP_Error
      */
     public function capture_payment( $order_id ) {
         $url                             = $this->make_paypal_url( "v2/checkout/orders/{$order_id}/capture" );
@@ -238,7 +235,7 @@ class Processor {
             'PayPal-Request-Id'             => $order_id,
         ];
 
-        $response = $this->make_request( $url, [] );
+        $response = $this->make_request( $url );
 
         if ( is_wp_error( $response ) ) {
             return $response;
@@ -253,22 +250,20 @@ class Processor {
             return $response;
         }
 
-        return new \WP_Error( 'dokan_paypal_capture_order_error', $response );
+        return new WP_Error( 'dokan_paypal_capture_order_error', $response );
     }
 
     /**
      * Get order details by order id
      *
      * @param $order_id
-     *
      * @since DOKAN_LITE_SINCE
-     *
-     * @return array|mixed|\WP_Error
+     * @return array|WP_Error
      */
     public function get_order( $order_id ) {
         $url = $this->make_paypal_url( "v2/checkout/orders/{$order_id}" );
 
-        $response = $this->get_request( $url );
+        $response = $this->make_request( $url, [], 'get' );
 
         if ( is_wp_error( $response ) ) {
             return $response;
@@ -278,19 +273,39 @@ class Processor {
     }
 
     /**
+     * Get all registered webhooks
+     *
+     * @since DOKAN_PRO_SINCE
+     * @return array|WP_Error
+     */
+    public function get_webhooks() {
+        $url      = $this->make_paypal_url( 'v1/notifications/webhooks' );
+        $response = $this->make_request( $url, [], 'get' );
+
+        if ( is_wp_error( $response ) ) {
+            return $response;
+        }
+
+        if ( isset( $response['webhooks'] ) ) {
+            return $response['webhooks'];
+        }
+
+        return new WP_Error( 'dokan_paypal_list_webhooks_error', $response );
+    }
+
+    /**
      * Create webhook on PayPal
      *
      * @param $webhook_url
      * @param $event_types
      *
      * @since DOKAN_LITE_SINCE
-     *
-     * @return array|\WP_Error
+     * @return array|WP_Error
      */
     public function create_webhook( $webhook_url, $event_types ) {
-        $url          = $this->make_paypal_url( "v1/notifications/webhooks" );
+        $url          = $this->make_paypal_url( 'v1/notifications/webhooks' );
         $webhook_data = [
-            "url"         => $webhook_url,
+            'url'         => $webhook_url,
             'event_types' => $event_types,
         ];
 
@@ -304,15 +319,32 @@ class Processor {
             return $response;
         }
 
-        return new \WP_Error( 'dokan_paypal_create_webhook_error', $response );
+        return new WP_Error( 'dokan_paypal_create_webhook_error', $response );
+    }
+
+    /**
+     * @return bool|WP_Error
+     * @since DOKAN_LITE_SINCE
+     */
+    public function delete_webhook( $id ) {
+        if ( empty( $id ) ) {
+            return new WP_Error( 'dokan_paypal_invalid_webhook_id', __( 'Invalid webhook id provided, Please check your input.', 'dokan-lite' ) );
+        }
+        $url      = $this->make_paypal_url( 'v1/notifications/webhooks/' . $id );
+        $response = $this->make_request( $url, [], 'delete' );
+
+        if ( is_wp_error( $response ) ) {
+            return $response;
+        }
+
+        return true;
     }
 
     /**
      * Get access token
      *
+     * @return string|WP_Error
      * @since DOKAN_LITE_SINCE
-     *
-     * @return string|\WP_Error
      */
     public function get_access_token() {
         if ( get_transient( '_dokan_paypal_marketplace_access_token' ) ) {
@@ -331,13 +363,12 @@ class Processor {
     /**
      * Create access token
      *
+     * @return string|WP_Error
      * @since DOKAN_LITE_SINCE
-     *
-     * @return string|\WP_Error
      */
     public function create_access_token() {
         $url      = $this->make_paypal_url( 'v1/oauth2/token/' );
-        $response = $this->make_request( $url, [ 'grant_type' => 'client_credentials' ], true, false, false );
+        $response = $this->make_request( $url, [ 'grant_type' => 'client_credentials' ], 'post', true, false, false );
 
         if ( is_wp_error( $response ) ) {
             return $response;
@@ -368,7 +399,7 @@ class Processor {
      *
      * @param $url
      *
-     * @return array|mixed|\WP_Error
+     * @return array|mixed|WP_Error
      */
     public function get_request( $url ) {
         $header = $this->get_header();
@@ -395,7 +426,7 @@ class Processor {
         $body = wp_remote_retrieve_body( $response );
 
         if ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
-            return new \WP_Error( 'dokan_paypal_request_error', $body );
+            return new WP_Error( 'dokan_paypal_request_error', $body );
         }
 
         return json_decode( $body, true );
@@ -404,17 +435,17 @@ class Processor {
     /**
      * Make request
      *
-     * @param $url
-     * @param $data
+     * @param string $url
+     * @param array $data
+     * @param string $method get|post|delete|patch
      * @param bool $header
      * @param bool $content_type_json
      * @param bool $request_with_token
      *
      * @since DOKAN_LITE_SINCE
-     *
-     * @return array|\WP_Error
+     * @return array|WP_Error
      */
-    public function make_request( $url, $data, $header = true, $content_type_json = true, $request_with_token = true ) {
+    public function make_request( $url, $data = [], $method = 'post', $header = true, $content_type_json = true, $request_with_token = true ) {
         $header = $header ? $this->get_header( $content_type_json, $request_with_token ) : [];
 
         if ( is_wp_error( $header ) ) {
@@ -431,7 +462,24 @@ class Processor {
             'cookies'     => [],
         ];
 
-        $response = wp_remote_post( esc_url_raw( $url ), $args );
+        switch ( strtolower( $method ) ) {
+            case 'get':
+                $args['method'] = 'GET';
+                break;
+            case 'post':
+                $args['method'] = 'POST';
+                break;
+            case 'delete':
+                $args['method'] = 'DELETE';
+                break;
+            case 'patch':
+                $args['method'] = 'PATCH';
+                break;
+            default:
+                $args['method'] = 'POST';
+        }
+
+        $response = wp_remote_request( esc_url_raw( $url ), $args );
 
         if ( is_wp_error( $response ) ) {
             return $response;
@@ -445,7 +493,7 @@ class Processor {
             201 !== wp_remote_retrieve_response_code( $response ) &&
             204 !== wp_remote_retrieve_response_code( $response )
         ) {
-            return new \WP_Error( 'dokan_paypal_request_error', $body, [ 'paypal_debug_id' => $paypal_debug_id ] );
+            return new WP_Error( 'dokan_paypal_request_error', $body, [ 'paypal_debug_id' => $paypal_debug_id ] );
         }
 
         if ( $paypal_debug_id ) {
@@ -462,8 +510,7 @@ class Processor {
      * @param bool $request_with_token
      *
      * @since DOKAN_LITE_SINCE
-     *
-     * @return array|\WP_Error
+     * @return array|WP_Error
      */
     public function get_header( $content_type_json = true, $request_with_token = true ) {
         $content_type = $content_type_json ? 'json' : 'x-www-form-urlencoded';
@@ -501,33 +548,17 @@ class Processor {
      * @return string
      */
     public function get_authorization_data() {
-        $prefix = $this->test_mode ? 'test_' : '';
-
-        $client_id     = $this->get_option( $prefix . 'app_user' );
-        $client_secret = $this->get_option( $prefix . 'app_pass' );
+        $client_id     = Helper::get_client_id();
+        $client_secret = Helper::get_client_secret();
 
         return base64_encode( $client_id . ':' . $client_secret ); //phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
-    }
-
-    /**
-     * Get PayPal settings option data from db
-     *
-     * @param $key
-     *
-     * @since DOKAN_LITE_SINCE
-     *
-     * @return mixed
-     */
-    public function get_option( $key ) {
-        return dokan()->payment_gateway->paypal_marketplace->paypal_wc_gateway->get_option( $key );
     }
 
     /**
      * Get generated client token
      *
      * @since DOKAN_LITE_SINCE
-     *
-     * @return array|mixed|\WP_Error
+     * @return array|mixed|WP_Error
      */
     public function get_generated_client_token() {
         if ( get_transient( '_dokan_paypal_marketplace_client_token' ) ) {
@@ -550,7 +581,7 @@ class Processor {
      *
      * @since DOKAN_LITE_SINCE
      *
-     * @return array|\WP_Error
+     * @return array|WP_Error
      */
     public function generate_client_token() {
         $url = $this->make_paypal_url( 'v1/identity/generate-token' );
@@ -567,7 +598,7 @@ class Processor {
             return $response['client_token'];
         }
 
-        return new \WP_Error( 'dokan_paypal_generate_client_token_error', $response );
+        return new WP_Error( 'dokan_paypal_generate_client_token_error', $response );
     }
 
     /**
@@ -621,16 +652,5 @@ class Processor {
         }
 
         return false;
-    }
-
-    /**
-     * Get test mode
-     *
-     * @since DOKAN_LITE_SINCE
-     *
-     * @return bool
-     */
-    public function get_test_mode() {
-        return $this->test_mode;
     }
 }

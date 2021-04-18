@@ -72,7 +72,7 @@ class CartHandler extends DokanPayPal {
 
             //localize data
             $data = [
-                'payment_button_type'     => $this->get_option( 'button_type' ),
+                'payment_button_type'     => Helper::get_button_type(),
                 'is_checkout_page'        => is_checkout(),
                 'is_ucc_enabled'          => Helper::is_ucc_enabled_for_all_seller_in_cart(),
                 'nonce'                   => wp_create_nonce( 'dokan_paypal' ),
@@ -172,17 +172,21 @@ data-merchant-id="' . implode( ',', $paypal_merchant_ids ) . '" ' . $data_client
         if ( ! apply_filters( 'dokan_paypal_display_paypal_button', true ) ) {
             return;
         }
-        if ( Helper::is_ucc_enabled_for_all_seller_in_cart() ) :
-			?>
-            <img src="<?php echo DOKAN_PLUGIN_ASSEST . '/images/spinner-2x.gif'; ?>" class="paypal-loader" style="margin: 0 auto;" alt="PayPal is loading...">
-                <div id="paypal-button-container" style="display:none;">
-                    <div class="unbranded_checkout">
-                        <a id="pay_unbranded_order" href="#" class="button alt" value="Place order"><?php esc_attr_e( 'Pay', 'dokan-lite' ); ?></a>
-                        <p class="text-center"><?php esc_attr_e( 'OR', 'dokan-lite' ); ?></p>
-                    </div>
+        // do not load if button type is not smart
+        if ( Helper::get_button_type() !== 'smart' ) {
+            return;
+        }
+        ?>
+        <img src="<?php echo DOKAN_PLUGIN_ASSEST . '/images/spinner-2x.gif'; ?>" class="paypal-loader" style="margin: 0 auto;" alt="PayPal is loading...">
+        <div id="paypal-button-container" style="display:none;">
+            <?php if ( Helper::is_ucc_enabled_for_all_seller_in_cart() ) : ?>
+                <div class="unbranded_checkout">
+                    <a id="pay_unbranded_order" href="#" class="button alt" value="<?php esc_attr_e( 'Place order', 'dokan-lite' ); ?>"><?php esc_html_e( 'Pay', 'dokan-lite' ); ?></a>
+                    <p class="text-center"><?php esc_html_e( 'OR', 'dokan-lite' ); ?></p>
                 </div>
-			<?php
-        endif;
+            <?php endif; ?>
+        </div>
+        <?php
     }
 
     /**

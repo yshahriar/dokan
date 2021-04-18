@@ -19,8 +19,7 @@ class VendorWithdrawMethod {
      */
     public function __construct() {
         add_filter( 'dokan_withdraw_methods', [ $this, 'register_methods' ] );
-        add_action( 'dokan_payment_settings_before_form', [ $this, 'handle_error_message' ], 10, 2 );
-        add_action( 'dokan_payment_settings_before_form', [ $this, 'handle_success_message' ], 10, 2 );
+        add_action( 'dokan_payment_settings_before_form', [ $this, 'handle_vendor_message' ], 10, 2 );
         add_action( 'template_redirect', [ $this, 'deauthorize_vendor' ] );
     }
 
@@ -146,29 +145,15 @@ class VendorWithdrawMethod {
      *
      * @return void
      */
-    public function handle_error_message( $current_user, $profile_info ) {
+    public function handle_vendor_message( $current_user, $profile_info ) {
         $_get_data = wp_unslash( $_GET );//phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
-        if ( isset( $_get_data['status'] ) && 'seller_error' === sanitize_text_field( $_get_data['status'] ) ) {
-            echo '<div class=\'dokan-error\'>' . esc_html( rawurldecode( $_get_data['message'] ) ) . '</div>';
-        }
-    }
+        $status     = isset( $_get_data['status'] ) ? sanitize_text_field( rawurldecode( $_get_data['status'] ) ) : '';
+        $message    = isset( $_get_data['message'] ) ? esc_html( rawurldecode( $_get_data['message'] ) ) : '';
+        $class      = $status === 'error' ? 'dokan-error' : 'dokan-message';
 
-    /**
-     * Handle PayPal success message for payment settings
-     *
-     * @param $current_user
-     * @param $profile_info
-     *
-     * @since DOKAN_LITE_SINCE
-     *
-     * @return void
-     */
-    public function handle_success_message( $current_user, $profile_info ) {
-        $_get_data = wp_unslash( $_GET );//phpcs:ignore WordPress.Security.NonceVerification.Recommended
-
-        if ( isset( $_get_data['status'] ) && 'success' === sanitize_text_field( $_get_data['status'] ) ) {
-            echo '<div class=\'dokan-message\'>' . esc_html( rawurldecode( $_get_data['message'] ) ) . '</div>';
+        if ( ! empty( $status ) && ! empty( $message ) ) {
+            echo "<div class='{$class}'>{$message}</div>";
         }
     }
 }

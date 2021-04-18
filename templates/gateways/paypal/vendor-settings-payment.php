@@ -19,7 +19,7 @@
             <p class="dokan-text-left">
                 <?php $url = add_query_arg( [
                     'action'   => 'dokan-paypal-merchant-status-update',
-                    '_wpnonce' => $nonce,
+                    '_wpnonce' => wp_create_nonce( 'dokan-paypal-merchant-status-update' ),
                 ] );
                 ?>
                 <a href="<?php echo $url;?>" class="button button-primary">
@@ -36,6 +36,7 @@
                         id="vendor_paypal_email_address"
                         placeholder="<?php esc_html_e( 'Your PayPal email address', 'dokan-lite' ); ?>"
                         type="email"
+                        required
                     >
                 </div>
                 <div class="dokan-w4">
@@ -90,13 +91,13 @@ if ( $load_connect_js ) :
 
                     e.preventDefault();
 
-                    var vendor_email = $('#vendor_paypal_email_address').val();
-
-                    if (! vendor_email) {
+                    var validator = $( "form#payment-form" ).validate();
+                    if ( ! validator.element( "#vendor_paypal_email_address" ) ) {
                         return;
                     }
 
                     $(this).addClass('disabled');
+                    var vendor_email = $('#vendor_paypal_email_address').val();
 
                     let connect_data = {
                         action: "dokan_paypal_marketplace_connect",
