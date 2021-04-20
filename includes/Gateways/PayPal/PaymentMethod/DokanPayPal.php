@@ -176,7 +176,6 @@ class DokanPayPal extends WC_Payment_Gateway {
     public function init_hooks() {
         add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ &$this, 'process_admin_options' ] );
         add_action( 'admin_footer', [ $this, 'admin_script' ] );
-        add_filter( 'dokan_paypal_advanced_credit_card_debit_card_supported_countries', [ $this, 'supported_countries' ] );
     }
 
     /**
@@ -229,17 +228,7 @@ class DokanPayPal extends WC_Payment_Gateway {
                 'post_type'   => 'shop_order',
             ]
         );
-
-        if ( get_post_meta( $order->get_id(), '_dokan_paypal_order_id', true ) ) {
-            return [
-                'result'              => 'success',
-                'id'                  => $order_id,
-                'paypal_redirect_url' => get_post_meta( $order->get_id(), '_dokan_paypal_redirect_url', true ),
-                'paypal_order_id'     => get_post_meta( $order->get_id(), '_dokan_paypal_order_id', true ),
-                'redirect'            => get_post_meta( $order->get_id(), '_dokan_paypal_redirect_url', true ),
-                'success_redirect'    => $order->get_checkout_order_received_url(),
-            ];
-        }
+        // PayPal store orphaned order for 3 hours, so we don't need to check if multiple order created on paypal end.
 
         $process_payment = apply_filters( 'dokan_paypal_process_payment', [ 'order' => $order ] );
 
@@ -262,8 +251,8 @@ class DokanPayPal extends WC_Payment_Gateway {
             'intent'              => 'CAPTURE',
             'payer'               => $this->get_shipping_address( $order, true ),
             'application_context' => [
-                'return_url'          => $order->get_checkout_order_received_url(),
-                'cancel_url'          => $order->get_cancel_order_url(),
+                'return_url'          => $this->get_return_url( $order ),
+                'cancel_url'          => $order->get_cancel_order_url_raw(),
                 'brand_name'          => 'DOKAN',
                 'user_action'         => 'PAY_NOW',
                 'payment_method'      => [
@@ -301,6 +290,7 @@ class DokanPayPal extends WC_Payment_Gateway {
             'paypal_order_id'     => $create_order_url['id'],
             'redirect'            => $create_order_url['links'][1]['href'],
             'success_redirect'    => $this->get_return_url( $order ),
+            'cancel_redirect'     => $order->get_cancel_order_url_raw(),
         ];
     }
 

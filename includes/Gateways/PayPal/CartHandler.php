@@ -101,16 +101,6 @@ class CartHandler extends DokanPayPal {
         if ( 'dokan_paypal_sdk' === $handle ) {
             $paypal_merchant_ids = [];
 
-            foreach ( WC()->cart->get_cart() as $item ) {
-                $product_id = $item['data']->get_id();
-                $seller_id  = get_post_field( 'post_author', $product_id );
-
-                $merchant_id = Helper::get_seller_merchant_id( $seller_id );
-                $merchant_id = apply_filters( 'dokan_paypal_marketplace_merchant_id', $merchant_id, $product_id );
-
-                $paypal_merchant_ids[ 'seller_' . $seller_id ] = $merchant_id;
-            }
-
             //if this is a order review page
             if ( is_checkout_pay_page() ) {
                 global $wp;
@@ -122,6 +112,16 @@ class CartHandler extends DokanPayPal {
 
                 foreach ( $order->get_items( 'line_item' ) as $key => $line_item ) {
                     $product_id = $line_item->get_product_id();
+                    $seller_id  = get_post_field( 'post_author', $product_id );
+
+                    $merchant_id = Helper::get_seller_merchant_id( $seller_id );
+                    $merchant_id = apply_filters( 'dokan_paypal_marketplace_merchant_id', $merchant_id, $product_id );
+
+                    $paypal_merchant_ids[ 'seller_' . $seller_id ] = $merchant_id;
+                }
+            } elseif ( is_checkout() ) {
+                foreach ( WC()->cart->get_cart() as $item ) {
+                    $product_id = $item['data']->get_id();
                     $seller_id  = get_post_field( 'post_author', $product_id );
 
                     $merchant_id = Helper::get_seller_merchant_id( $seller_id );
@@ -148,13 +148,13 @@ class CartHandler extends DokanPayPal {
                 if ( is_wp_error( $client_token ) ) {
                     dokan_log( 'dokan paypal marketplace generated access token error: ' . $client_token->get_error_message() );
                 } else {
-                    $data_client_token = 'data-client-token="' . $client_token . '"';
+                    $data_client_token = 'data-client-token="' . esc_attr( $client_token ) . '"';
                 }
             }
 
             //@codingStandardsIgnoreStart
-            $tag = '<script async type="text/javascript" src="' . $source . '" id="' . $handle . '-js"
-data-merchant-id="' . implode( ',', $paypal_merchant_ids ) . '" ' . $data_client_token . ' data-partner-attribution-id="' . Processor::BN_CODE . '"></script>';
+            $tag = '<script async type="text/javascript" src="' . esc_url( $source ) . '" id="' . esc_attr( $handle ) . '-js"
+data-merchant-id="' . esc_attr( implode( ',', $paypal_merchant_ids ) ) . '" ' . $data_client_token . ' data-partner-attribution-id="' . esc_attr( Processor::BN_CODE ) . '"></script>';
             //@codingStandardsIgnoreEnd
         }
 
