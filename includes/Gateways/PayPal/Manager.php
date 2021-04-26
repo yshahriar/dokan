@@ -7,6 +7,10 @@ use WeDevs\Dokan\Gateways\PayPal\Utilities\Processor;
 use WeDevs\Dokan\Traits\ChainableContainer;
 use WeDevs\Dokan\Gateways\Manager as GatewayManager;
 
+//todo: 1, rewrite apis so that we can send custom apis, rewrite make_request() method
+//todo: 2, check api calls and change return=representation to return=minimal while necessary, this will make api calls a little bit faster
+//todo: 3, send some task to background process
+
 /**
  * Class Manager
  * @package WeDevs\Dokan\Gateways\PayPal
@@ -65,22 +69,22 @@ class Manager {
      */
     public function handle_paypal_marketplace() {
         $user_id = dokan_get_current_user_id();
-        if ( ! dokan_is_user_seller( $user_id ) ) {
+        if ( empty( $user_id ) || ! dokan_is_user_seller( $user_id ) ) {
             return;
         }
 
         if (
-            isset( $_GET['action'] ) &&
+            ! isset( $_GET['action'] ) || (
             'dokan-paypal-marketplace-connect' !== $_GET['action'] &&
             'dokan-paypal-marketplace-connect-success' !== $_GET['action'] &&
-            'dokan-paypal-merchant-status-update' !== $_GET['action']
+            'dokan-paypal-merchant-status-update' !== $_GET['action'] )
         ) {
             return;
         }
 
         $get_data = wp_unslash( $_GET );
 
-        if ( isset( $get_data['_wpnonce'] ) && 'dokan-paypal-marketplace-connect' === $_GET['action'] && ! wp_verify_nonce( $get_data['_wpnonce'], 'dokan-paypal-marketplace-connect' ) ) {
+        if ( isset( $get_data['_wpnonce'] ) && 'dokan-paypal-marketplace-connect' === $get_data['action'] && ! wp_verify_nonce( $get_data['_wpnonce'], 'dokan-paypal-marketplace-connect' ) ) {
             wp_safe_redirect( add_query_arg( [ 'message' => 'error' ], dokan_get_navigation_url( 'settings/payment' ) ) );
             exit();
         }

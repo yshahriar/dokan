@@ -203,6 +203,8 @@ class Processor {
         ];
 
         $response = $this->make_request( $url, wp_json_encode( $order_data ) );
+        // we need to empty this, otherwise this will be used on subsequent requests
+        $this->additional_request_header = [];
 
         if ( is_wp_error( $response ) ) {
             return $response;
@@ -232,10 +234,12 @@ class Processor {
         $this->additional_request_header = [
             'Prefer'                        => 'return=representation',
             'PayPal-Partner-Attribution-Id' => self::BN_CODE,
-            'PayPal-Request-Id'             => $order_id,
+            //'PayPal-Request-Id'             => $order_id,
         ];
 
         $response = $this->make_request( $url );
+        // we need to empty this, otherwise this will be used on subsequent requests
+        $this->additional_request_header = [];
 
         if ( is_wp_error( $response ) ) {
             return $response;
@@ -613,12 +617,11 @@ class Processor {
      * @return bool
      */
     public function continue_transaction( $order_data ) {
-        $payment_source = $order_data['payment_source']['card'];
-
         //if no source considered it as a paypal payment not using any card
-        if ( ! $payment_source ) {
+        if ( empty( $order_data['payment_source']['card'] ) ) {
             return true;
         }
+        $payment_source = $order_data['payment_source']['card'];
 
         $authentication_result = $payment_source['authentication_result'];
         $liability_shift       = isset( $authentication_result['liability_shift'] ) ? $authentication_result['liability_shift'] : 'unknown';

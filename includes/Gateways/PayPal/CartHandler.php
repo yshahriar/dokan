@@ -81,6 +81,21 @@ class CartHandler extends DokanPayPal {
                 'card_info_error_message' => __( 'Please fill up the card info!', 'dokan-lite' ),
             ];
 
+            if ( is_checkout_pay_page() ) {
+                // get order info
+                $order = wc_get_order( $order_id );
+                if ( $order instanceof \WC_Order ) {
+                    $data['billing_address'] = [
+                        'streetAddress'     => $order->get_billing_address_1(),
+                        'extendedAddress'   => $order->get_billing_address_2(),
+                        'region'            => $order->get_billing_state(),
+                        'locality'          => $order->get_billing_city(),
+                        'postalCode'        => $order->get_billing_postcode(),
+                        'countryCodeAlpha2' => $order->get_billing_country(),
+                    ];
+                }
+            }
+
             wp_localize_script( 'dokan_paypal_sdk', 'dokan_paypal', $data );
 
             //add BN code to script

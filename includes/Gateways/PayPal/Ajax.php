@@ -159,15 +159,6 @@ class Ajax {
             $dokan_paypal    = dokan()->payment_gateway->paypal_marketplace->paypal_wc_gateway;
             $process_payment = $dokan_paypal->process_payment( $order_id );
 
-            if ( is_wp_error( $process_payment ) ) {
-                wp_send_json_error(
-                    [
-                        'type'    => 'error',
-                        'message' => __( 'Error in create order!', 'dokan-lite' ),
-                    ]
-                );
-            }
-
             wp_send_json_success(
                 [
                     'type'    => 'paypal_create_order',

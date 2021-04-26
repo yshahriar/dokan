@@ -273,8 +273,9 @@ class DokanPayPal extends WC_Payment_Gateway {
             Helper::log_paypal_error( $order->get_id(), $create_order_url, 'dpm_create_order' );
 
             return [
-                'result'   => 'fail',
-                'redirect' => '',
+                'result'   => 'failure',
+                'redirect' => false,
+                'messages' => '<ul class="woocommerce-error" role="alert"><li>' . $error_message . '</li></ul>',
             ];
         }
         //store paypal debug id & create order id
@@ -650,21 +651,21 @@ class DokanPayPal extends WC_Payment_Gateway {
         }
 
         //paypal does not allow if there are more than 10 products in the cart
-        if ( count( WC()->cart->get_cart() ) > 10 ) {
+        if ( is_object( WC()->cart ) && count( WC()->cart->get_cart() ) > 10 ) {
             return false;
-        }
+        } elseif ( WC()->cart ) {
+            foreach ( WC()->cart->get_cart() as $item ) {
+                $product_id = $item['data']->get_id();
+                $seller_id  = get_post_field( 'post_author', $product_id );
 
-        foreach ( WC()->cart->get_cart() as $item ) {
-            $product_id = $item['data']->get_id();
-            $seller_id  = get_post_field( 'post_author', $product_id );
+                // check if cart item is a vendor subscription product
+                if ( Helper::is_vendor_subscription_product( $product_id ) ) {
+                    continue;
+                }
 
-            // check if cart item is a vendor subscription product
-            if ( Helper::is_vendor_subscription_product( $product_id ) ) {
-                continue;
-            }
-
-            if ( ! Helper::is_seller_enable_for_receive_payment( $seller_id ) ) {
-                return false;
+                if ( ! Helper::is_seller_enable_for_receive_payment( $seller_id ) ) {
+                    return false;
+                }
             }
         }
 

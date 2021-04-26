@@ -61,7 +61,7 @@ class EventFactory {
      * @return WebhookEventHandler|void instance
      * @throws DokanException
      */
-    public function get( $event ) {
+    public static function get( $event ) {
         $events = Helper::get_supported_webhook_events();
         $class  = null;
 
