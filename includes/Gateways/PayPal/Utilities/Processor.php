@@ -234,7 +234,7 @@ class Processor {
         $this->additional_request_header = [
             'Prefer'                        => 'return=representation',
             'PayPal-Partner-Attribution-Id' => self::BN_CODE,
-            //'PayPal-Request-Id'             => $order_id,
+            'PayPal-Request-Id'             => $order_id,
         ];
 
         $response = $this->make_request( $url );
@@ -457,7 +457,6 @@ class Processor {
         }
 
         $args = [
-            'body'        => $data,
             'timeout'     => '120',
             'redirection' => '120',
             'httpversion' => '1.0',
@@ -465,6 +464,10 @@ class Processor {
             'headers'     => $header,
             'cookies'     => [],
         ];
+
+        if ( ! empty( $data ) ) {
+            $args['body'] = $data;
+        }
 
         switch ( strtolower( $method ) ) {
             case 'get':

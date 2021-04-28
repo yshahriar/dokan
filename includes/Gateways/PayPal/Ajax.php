@@ -288,8 +288,7 @@ class Ajax {
             wp_send_json_error(
                 [
                     'type'    => 'paypal_capture_payment',
-                    'message' => __( 'Error in capturing payment.', 'dokan-lite' ),
-                    'data'    => Helper::get_error_message( $capture_payment ),
+                    'message' => __( 'Error in capturing payment: ', 'dokan-lite' ) . Helper::get_error_message( $capture_payment ),
                 ]
             );
         }
