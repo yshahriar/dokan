@@ -68,7 +68,7 @@ class CartHandler extends DokanPayPal {
             //paypal sdk enqueue
             wp_enqueue_script( 'dokan_paypal_sdk', $paypal_js_sdk_url, [], null, false ); //phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
 
-            wp_enqueue_script( 'dokan_paypal_checkout', DOKAN_PLUGIN_ASSEST . '/js/paypal-checkout.js', [ 'dokan_paypal_sdk' ], '1.0.0', true );
+            wp_enqueue_script( 'dokan_paypal_checkout', DOKAN_PLUGIN_ASSEST . '/js/paypal-checkout.js', [ 'dokan_paypal_sdk' ], time(), true );
 
             //localize data
             $data = [

@@ -189,10 +189,11 @@ class Ajax {
         $nonce = wp_verify_nonce( sanitize_text_field( $post_data['nonce'] ), 'dokan_paypal' );
 
         if ( isset( $post_data['nonce'] ) && ! $nonce ) {
+            dokan_log( 'Nonce Validation Failed. Posted Data: ' . print_r( $post_data, true ) );
             wp_send_json_error(
                 [
                     'type'    => 'nonce',
-                    'message' => __( 'Are you cheating?', 'dokan-lite' ),
+                    'message' => __( 'Nonce validation failed.', 'dokan-lite' ),
                 ]
             );
         }
