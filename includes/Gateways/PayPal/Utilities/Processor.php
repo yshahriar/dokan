@@ -131,7 +131,12 @@ class Processor {
         ];
 
         $url      = $this->make_paypal_url( 'v2/customer/partner-referrals/' );
-        $response = $this->make_request( $url, wp_json_encode( $partner_referral_data ) );
+        $response = $this->make_request(
+            [
+				'url' => $url,
+				'data' => wp_json_encode( $partner_referral_data ),
+			]
+        );
 
         if ( is_wp_error( $response ) ) {
             return $response;
@@ -155,7 +160,12 @@ class Processor {
         $partner_id = Helper::get_partner_id();
         $url        = $this->make_paypal_url( "v1/customer/partners/{$partner_id}/merchant-integrations/?tracking_id={$tracking_id}" );
 
-        $response = $this->make_request( $url, [], 'get' );
+        $response = $this->make_request(
+            [
+				'url' => $url,
+				'method' => 'get',
+			]
+        );
 
         if ( is_wp_error( $response ) ) {
             return $response;
@@ -179,7 +189,12 @@ class Processor {
         $partner_id = Helper::get_partner_id();
         $url        = $this->make_paypal_url( "v1/customer/partners/{$partner_id}/merchant-integrations/{$merchant_id}" );
 
-        $response = $this->make_request( $url, [], 'get' );
+        $response = $this->make_request(
+            [
+				'url' => $url,
+				'method' => 'get',
+			]
+        );
 
         if ( is_wp_error( $response ) ) {
             return $response;
@@ -202,7 +217,12 @@ class Processor {
             'PayPal-Partner-Attribution-Id' => self::BN_CODE,
         ];
 
-        $response = $this->make_request( $url, wp_json_encode( $order_data ) );
+        $response = $this->make_request(
+            [
+				'url' => $url,
+				'data' => wp_json_encode( $order_data ),
+			]
+        );
         // we need to empty this, otherwise this will be used on subsequent requests
         $this->additional_request_header = [];
 
@@ -237,7 +257,7 @@ class Processor {
             'PayPal-Request-Id'             => $order_id,
         ];
 
-        $response = $this->make_request( $url );
+        $response = $this->make_request( [ 'url' => $url ] );
         // we need to empty this, otherwise this will be used on subsequent requests
         $this->additional_request_header = [];
 
@@ -267,7 +287,12 @@ class Processor {
     public function get_order( $order_id ) {
         $url = $this->make_paypal_url( "v2/checkout/orders/{$order_id}" );
 
-        $response = $this->make_request( $url, [], 'get' );
+        $response = $this->make_request(
+            [
+				'url' => $url,
+				'method' => 'get',
+			]
+        );
 
         if ( is_wp_error( $response ) ) {
             return $response;
@@ -284,7 +309,12 @@ class Processor {
      */
     public function get_webhooks() {
         $url      = $this->make_paypal_url( 'v1/notifications/webhooks' );
-        $response = $this->make_request( $url, [], 'get' );
+        $response = $this->make_request(
+            [
+				'url' => $url,
+				'method' => 'get',
+			]
+        );
 
         if ( is_wp_error( $response ) ) {
             return $response;
@@ -313,7 +343,12 @@ class Processor {
             'event_types' => $event_types,
         ];
 
-        $response = $this->make_request( $url, wp_json_encode( $webhook_data ) );
+        $response = $this->make_request(
+            [
+				'url' => $url,
+				'data' => wp_json_encode( $webhook_data ),
+			]
+        );
 
         if ( is_wp_error( $response ) ) {
             return $response;
@@ -335,7 +370,12 @@ class Processor {
             return new WP_Error( 'dokan_paypal_invalid_webhook_id', __( 'Invalid webhook id provided, Please check your input.', 'dokan-lite' ) );
         }
         $url      = $this->make_paypal_url( 'v1/notifications/webhooks/' . $id );
-        $response = $this->make_request( $url, [], 'delete' );
+        $response = $this->make_request(
+            [
+				'url' => $url,
+				'method' => 'delete',
+			]
+        );
 
         if ( is_wp_error( $response ) ) {
             return $response;
@@ -372,7 +412,16 @@ class Processor {
      */
     public function create_access_token() {
         $url      = $this->make_paypal_url( 'v1/oauth2/token/' );
-        $response = $this->make_request( $url, [ 'grant_type' => 'client_credentials' ], 'post', true, false, false );
+        $response = $this->make_request(
+            [
+				'url' => $url,
+				'data' => [ 'grant_type' => 'client_credentials' ],
+				'method' => 'post',
+				'header' => true,
+				'content_type_json' => false,
+				'request_with_token' => false,
+			]
+        );
 
         if ( is_wp_error( $response ) ) {
             return $response;
@@ -439,18 +488,25 @@ class Processor {
     /**
      * Make request
      *
-     * @param string $url
      * @param array $data
-     * @param string $method get|post|delete|patch
-     * @param bool $header
-     * @param bool $content_type_json
-     * @param bool $request_with_token
      *
      * @since DOKAN_LITE_SINCE
      * @return array|WP_Error
      */
-    public function make_request( $url, $data = [], $method = 'post', $header = true, $content_type_json = true, $request_with_token = true ) {
-        $header = $header ? $this->get_header( $content_type_json, $request_with_token ) : [];
+    //public function make_request( $url, $data = [], $method = 'post', $header = true, $content_type_json = true, $request_with_token = true ) {
+    public function make_request( $data = [] ) {
+        $defaults = [
+            'url'                => '',
+            'data'               => [],
+            'method'             => 'post',
+            'header'             => true,
+            'content_type_json'  => true,
+            'request_with_token' => true,
+        ];
+
+        $parsed_args = wp_parse_args( $data, $defaults );
+
+        $header = $parsed_args['header'] === true ? $this->get_header( $parsed_args['content_type_json'], $parsed_args['request_with_token'] ) : [];
 
         if ( is_wp_error( $header ) ) {
             return $header;
@@ -465,11 +521,11 @@ class Processor {
             'cookies'     => [],
         ];
 
-        if ( ! empty( $data ) ) {
-            $args['body'] = $data;
+        if ( ! empty( $parsed_args['data'] ) ) {
+            $args['body'] = $parsed_args['data'];
         }
 
-        switch ( strtolower( $method ) ) {
+        switch ( strtolower( $parsed_args['method'] ) ) {
             case 'get':
                 $args['method'] = 'GET';
                 break;
@@ -486,7 +542,7 @@ class Processor {
                 $args['method'] = 'POST';
         }
 
-        $response = wp_remote_request( esc_url_raw( $url ), $args );
+        $response = wp_remote_request( esc_url_raw( $parsed_args['url'] ), $args );
 
         if ( is_wp_error( $response ) ) {
             return $response;
@@ -593,7 +649,7 @@ class Processor {
     public function generate_client_token() {
         $url = $this->make_paypal_url( 'v1/identity/generate-token' );
 
-        $response = $this->make_request( $url, [] );
+        $response = $this->make_request( [ 'url' => $url ] );
 
         if ( is_wp_error( $response ) ) {
             return $response;
